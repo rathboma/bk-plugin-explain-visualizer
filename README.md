@@ -4,7 +4,7 @@ A [Beekeeper Studio](https://www.beekeeperstudio.io) plugin that turns query
 execution plans into an interactive diagram, so the slow part of a query is
 easy to find.
 
-![Plan diagram with node details](docs/diagram.png)
+![Walkthrough: right-click a query, open its plan, run Explain Analyze and jump to the slow step](docs/walkthrough.gif)
 
 - **Diagram** of the plan, coloured by each step's share of execution time
   (or estimated cost). Wider links carry more rows.
@@ -16,7 +16,7 @@ easy to find.
   workers that didn't start, slow JIT compilation and more.
 - **Raw** plan output, ready to copy or save.
 
-![Table view in the light theme](docs/table.png)
+More in the [screenshots](#screenshots) below.
 
 ## Supported databases
 
@@ -44,6 +44,8 @@ There are several ways in:
   output (one row per line), right-click the `QUERY PLAN` column header.
 - **Paste Plan:** paste JSON or text EXPLAIN output, for example from psql or a
   colleague.
+
+![The query editor's context menu with Visualize Explain Plan](docs/screenshot-context-menu.png)
 
 ### Explain and Explain Analyze
 
@@ -75,6 +77,24 @@ the plugin uses those options.
 The **Options** menu toggles `BUFFERS`, `VERBOSE`, `SETTINGS` and `WAL`. Options
 the server doesn't support are disabled. Statements with `$1` parameters are
 explained with `GENERIC_PLAN` on PostgreSQL 16+.
+
+## Screenshots
+
+Explain Analyze, with the slow step selected and an insight about it:
+
+![Analyzed plan with a sequential scan selected and its insight](docs/screenshot-diagram.png)
+
+The same plan as a table, sorted by self time:
+
+![Table view sorted by self time](docs/screenshot-table.png)
+
+A query with a CTE, an InitPlan and a SubPlan, each shown as its own branch:
+
+![Plan with CTE, InitPlan and SubPlan branches](docs/screenshot-branches.png)
+
+The plugin follows Beekeeper Studio's theme:
+
+![A plan in the light theme](docs/screenshot-light.png)
 
 ## Development
 
