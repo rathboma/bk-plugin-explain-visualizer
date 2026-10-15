@@ -1,0 +1,59 @@
+{
+  "name": "pg18-index-only-scan",
+  "serverVersion": "18.6 (Debian 18.6-1.pgdg13+2)",
+  "analyze": true,
+  "modifies": false,
+  "query": "SELECT customer_id FROM orders WHERE customer_id BETWEEN 100 AND 200",
+  "json": [
+    {
+      "Plan": {
+        "Node Type": "Index Only Scan",
+        "Parallel Aware": false,
+        "Async Capable": false,
+        "Scan Direction": "Forward",
+        "Index Name": "orders_customer_id_idx",
+        "Relation Name": "orders",
+        "Alias": "orders",
+        "Startup Cost": 0.29,
+        "Total Cost": 29.92,
+        "Plan Rows": 1081,
+        "Plan Width": 4,
+        "Actual Startup Time": 0.01,
+        "Actual Total Time": 0.089,
+        "Actual Rows": 1010,
+        "Actual Loops": 1,
+        "Disabled": false,
+        "Index Cond": "((customer_id >= 100) AND (customer_id <= 200))",
+        "Rows Removed by Index Recheck": 0,
+        "Heap Fetches": 0,
+        "Index Searches": 1,
+        "Shared Hit Blocks": 4,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0
+      },
+      "Planning": {
+        "Shared Hit Blocks": 6,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0
+      },
+      "Planning Time": 0.082,
+      "Triggers": [],
+      "Execution Time": 0.136
+    }
+  ],
+  "text": "Index Only Scan using orders_customer_id_idx on orders  (cost=0.29..29.92 rows=1081 width=4) (actual time=0.013..0.070 rows=1010.00 loops=1)\n  Index Cond: ((customer_id >= 100) AND (customer_id <= 200))\n  Heap Fetches: 0\n  Index Searches: 1\n  Buffers: shared hit=4\nPlanning:\n  Buffers: shared hit=3\nPlanning Time: 0.165 ms\nExecution Time: 0.118 ms"
+}

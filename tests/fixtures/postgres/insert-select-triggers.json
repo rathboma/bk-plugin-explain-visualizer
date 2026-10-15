@@ -1,0 +1,128 @@
+{
+  "name": "insert-select-triggers",
+  "serverVersion": "17.11 (Debian 17.11-1.pgdg13+2)",
+  "analyze": true,
+  "modifies": true,
+  "query": "INSERT INTO order_items (order_id, product_id, quantity, unit_price)\nSELECT id, 1, 1, 9.99 FROM orders WHERE customer_id < 20",
+  "json": [
+    {
+      "Plan": {
+        "Node Type": "ModifyTable",
+        "Operation": "Insert",
+        "Parallel Aware": false,
+        "Async Capable": false,
+        "Relation Name": "order_items",
+        "Alias": "order_items",
+        "Startup Cost": 5.77,
+        "Total Cost": 610.37,
+        "Plan Rows": 0,
+        "Plan Width": 0,
+        "Actual Startup Time": 2.252,
+        "Actual Total Time": 2.252,
+        "Actual Rows": 0,
+        "Actual Loops": 1,
+        "Shared Hit Blocks": 1160,
+        "Shared Read Blocks": 190,
+        "Shared Dirtied Blocks": 191,
+        "Shared Written Blocks": 1,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0,
+        "Plans": [
+          {
+            "Node Type": "Bitmap Heap Scan",
+            "Parent Relationship": "Outer",
+            "Parallel Aware": false,
+            "Async Capable": false,
+            "Relation Name": "orders",
+            "Alias": "orders",
+            "Startup Cost": 5.77,
+            "Total Cost": 610.37,
+            "Plan Rows": 190,
+            "Plan Width": 32,
+            "Actual Startup Time": 0.084,
+            "Actual Total Time": 0.411,
+            "Actual Rows": 190,
+            "Actual Loops": 1,
+            "Recheck Cond": "(customer_id < 20)",
+            "Rows Removed by Index Recheck": 0,
+            "Exact Heap Blocks": 180,
+            "Lossy Heap Blocks": 0,
+            "Shared Hit Blocks": 384,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "Local Hit Blocks": 0,
+            "Local Read Blocks": 0,
+            "Local Dirtied Blocks": 0,
+            "Local Written Blocks": 0,
+            "Temp Read Blocks": 0,
+            "Temp Written Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Bitmap Index Scan",
+                "Parent Relationship": "Outer",
+                "Parallel Aware": false,
+                "Async Capable": false,
+                "Index Name": "orders_customer_id_idx",
+                "Startup Cost": 0,
+                "Total Cost": 5.72,
+                "Plan Rows": 190,
+                "Plan Width": 0,
+                "Actual Startup Time": 0.008,
+                "Actual Total Time": 0.009,
+                "Actual Rows": 190,
+                "Actual Loops": 1,
+                "Index Cond": "(customer_id < 20)",
+                "Shared Hit Blocks": 2,
+                "Shared Read Blocks": 0,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Local Hit Blocks": 0,
+                "Local Read Blocks": 0,
+                "Local Dirtied Blocks": 0,
+                "Local Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0
+              }
+            ]
+          }
+        ]
+      },
+      "Planning": {
+        "Shared Hit Blocks": 9,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0
+      },
+      "Planning Time": 0.099,
+      "Triggers": [
+        {
+          "Trigger Name": "RI_ConstraintTrigger_c_16438",
+          "Constraint Name": "order_items_order_id_fkey",
+          "Relation": "order_items",
+          "Time": 1.765,
+          "Calls": 190
+        },
+        {
+          "Trigger Name": "RI_ConstraintTrigger_c_16443",
+          "Constraint Name": "order_items_product_id_fkey",
+          "Relation": "order_items",
+          "Time": 0.785,
+          "Calls": 190
+        }
+      ],
+      "Execution Time": 4.867
+    }
+  ],
+  "text": "Insert on order_items  (cost=5.77..610.37 rows=0 width=0) (actual time=2.427..2.428 rows=0 loops=1)\n  Buffers: shared hit=1333 dirtied=3 written=3\n  ->  Bitmap Heap Scan on orders  (cost=5.77..610.37 rows=190 width=32) (actual time=0.033..0.302 rows=190 loops=1)\n        Recheck Cond: (customer_id < 20)\n        Heap Blocks: exact=180\n        Buffers: shared hit=372\n        ->  Bitmap Index Scan on orders_customer_id_idx  (cost=0.00..5.72 rows=190 width=0) (actual time=0.008..0.009 rows=190 loops=1)\n              Index Cond: (customer_id < 20)\n              Buffers: shared hit=2\nPlanning:\n  Buffers: shared hit=3\nPlanning Time: 0.080 ms\nTrigger for constraint order_items_order_id_fkey: time=1.389 calls=190\nTrigger for constraint order_items_product_id_fkey: time=0.902 calls=190\nExecution Time: 4.762 ms"
+}

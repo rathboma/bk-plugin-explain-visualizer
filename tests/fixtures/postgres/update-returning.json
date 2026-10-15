@@ -1,0 +1,83 @@
+{
+  "name": "update-returning",
+  "serverVersion": "17.11 (Debian 17.11-1.pgdg13+2)",
+  "analyze": true,
+  "modifies": true,
+  "query": "UPDATE products SET price = price * 1.1 WHERE category = 'toys' RETURNING id, price",
+  "json": [
+    {
+      "Plan": {
+        "Node Type": "ModifyTable",
+        "Operation": "Update",
+        "Parallel Aware": false,
+        "Async Capable": false,
+        "Relation Name": "products",
+        "Alias": "products",
+        "Startup Cost": 0,
+        "Total Cost": 42,
+        "Plan Rows": 400,
+        "Plan Width": 22,
+        "Actual Startup Time": 0.097,
+        "Actual Total Time": 2.451,
+        "Actual Rows": 400,
+        "Actual Loops": 1,
+        "Shared Hit Blocks": 2874,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 8,
+        "Shared Written Blocks": 8,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0,
+        "Plans": [
+          {
+            "Node Type": "Seq Scan",
+            "Parent Relationship": "Outer",
+            "Parallel Aware": false,
+            "Async Capable": false,
+            "Relation Name": "products",
+            "Alias": "products",
+            "Startup Cost": 0,
+            "Total Cost": 42,
+            "Plan Rows": 400,
+            "Plan Width": 22,
+            "Actual Startup Time": 0.009,
+            "Actual Total Time": 0.227,
+            "Actual Rows": 400,
+            "Actual Loops": 1,
+            "Filter": "(category = 'toys'::text)",
+            "Rows Removed by Filter": 1600,
+            "Shared Hit Blocks": 15,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "Local Hit Blocks": 0,
+            "Local Read Blocks": 0,
+            "Local Dirtied Blocks": 0,
+            "Local Written Blocks": 0,
+            "Temp Read Blocks": 0,
+            "Temp Written Blocks": 0
+          }
+        ]
+      },
+      "Planning": {
+        "Shared Hit Blocks": 6,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0
+      },
+      "Planning Time": 0.088,
+      "Triggers": [],
+      "Execution Time": 2.705
+    }
+  ],
+  "text": "Update on products  (cost=0.00..50.40 rows=480 width=22) (actual time=0.066..1.393 rows=400 loops=1)\n  Buffers: shared hit=3129 dirtied=3 written=3\n  ->  Seq Scan on products  (cost=0.00..50.40 rows=480 width=22) (actual time=0.017..0.269 rows=400 loops=1)\n        Filter: (category = 'toys'::text)\n        Rows Removed by Filter: 1600\n        Buffers: shared hit=18\nPlanning Time: 0.044 ms\nExecution Time: 1.433 ms"
+}

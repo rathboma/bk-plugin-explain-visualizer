@@ -1,0 +1,260 @@
+/*
+ * Beekeeper Studio sends its theme as CSS variables on :root (see
+ * src/host/theme.ts). The values below are fallbacks matching the default
+ * dark theme. They are set on `html`, which is less specific than `:root`,
+ * so the app's theme always wins.
+ */
+html {
+  --font-size: 0.875rem;
+  --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, sans-serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --theme-bg: #181818;
+  --theme-base: #fff;
+  --theme-primary: #fad83b;
+  --theme-secondary: #4ad0ff;
+  --text-dark: rgba(255, 255, 255, 0.87);
+  --text: rgba(255, 255, 255, 0.67);
+  --text-light: rgba(255, 255, 255, 0.57);
+  --text-lighter: rgba(255, 255, 255, 0.37);
+  --text-hint: rgba(255, 255, 255, 0.37);
+  --brand-info: #4ad0ff;
+  --brand-success: #15db95;
+  --brand-warning: #ff8d21;
+  --brand-danger: #ff5d59;
+  --brand-purple: #9858ff;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --selection: rgba(250, 216, 59, 0.2);
+  --input-highlight: rgba(255, 255, 255, 0.27);
+  --query-editor-bg: #090909;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+
+  /* Derived tokens */
+  --canvas: var(--query-editor-bg);
+  --panel: var(--theme-bg);
+  --raised: color-mix(in srgb, var(--theme-base) 5%, var(--theme-bg));
+  --raised-hover: color-mix(in srgb, var(--theme-base) 9%, var(--theme-bg));
+  --subtle: color-mix(in srgb, var(--theme-base) 4%, transparent);
+  --accent: var(--theme-primary);
+  --accent-text: #000;
+  --heat-low: color-mix(in srgb, var(--brand-warning) 45%, var(--raised));
+  --heat-mid: var(--brand-warning);
+  --heat-high: var(--brand-danger);
+  --radius: 6px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+html[data-theme="light"] {
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.06);
+  --raised: color-mix(in srgb, var(--theme-base) 2%, white);
+  --raised-hover: color-mix(in srgb, var(--theme-base) 5%, white);
+  --canvas: color-mix(in srgb, var(--theme-base) 3%, var(--theme-bg));
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--panel);
+  color: var(--text-dark);
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+  line-height: 1.4;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--selection);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+code,
+pre,
+.mono {
+  font-family: var(--font-family-mono);
+}
+
+.icon {
+  flex: none;
+  display: block;
+}
+
+/* Buttons ---------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--raised);
+  color: var(--text-dark);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.btn:hover:not(:disabled) {
+  background: var(--raised-hover);
+}
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--accent-text);
+}
+.btn.primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 88%, white);
+}
+.btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text);
+}
+.btn.ghost:hover:not(:disabled) {
+  background: var(--subtle);
+  color: var(--text-dark);
+}
+.btn.icon-only {
+  width: 28px;
+  padding: 0;
+  justify-content: center;
+}
+.btn .kbd {
+  font-size: 0.6875rem;
+  opacity: 0.6;
+  font-weight: 400;
+}
+
+/* Segmented control ------------------------------------------------------ */
+
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: var(--radius);
+  background: var(--subtle);
+  border: 1px solid var(--border-color);
+}
+.segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-light);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.segmented button:hover:not(:disabled) {
+  color: var(--text-dark);
+}
+.segmented button.active {
+  background: var(--raised-hover);
+  color: var(--text-dark);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.segmented button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Misc ------------------------------------------------------------------- */
+
+.muted {
+  color: var(--text-light);
+}
+.hint {
+  color: var(--text-lighter);
+  font-size: 0.75rem;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 16px;
+  background: var(--subtle);
+  color: var(--text-light);
+  white-space: nowrap;
+}
+.badge.warning {
+  background: color-mix(in srgb, var(--brand-warning) 18%, transparent);
+  color: var(--brand-warning);
+}
+.badge.critical {
+  background: color-mix(in srgb, var(--brand-danger) 18%, transparent);
+  color: var(--brand-danger);
+}
+.badge.info {
+  background: color-mix(in srgb, var(--brand-info) 15%, transparent);
+  color: var(--brand-info);
+}
+
+.sev-critical {
+  color: var(--brand-danger);
+}
+.sev-warning {
+  color: var(--brand-warning);
+}
+.sev-info {
+  color: var(--brand-info);
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,150 @@
+{
+  "name": "pg18-hash-join-aggregate-estimate",
+  "serverVersion": "18.6 (Debian 18.6-1.pgdg13+2)",
+  "analyze": false,
+  "modifies": false,
+  "query": "SELECT c.country, count(*) AS orders, sum(o.total) AS revenue\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nWHERE o.status = 'pending'\nGROUP BY c.country\nORDER BY revenue DESC",
+  "json": [
+    {
+      "Plan": {
+        "Node Type": "Sort",
+        "Parallel Aware": false,
+        "Async Capable": false,
+        "Startup Cost": 6144.44,
+        "Total Cost": 6144.46,
+        "Plan Rows": 7,
+        "Plan Width": 43,
+        "Disabled": false,
+        "Sort Key": [
+          "(sum(o.total)) DESC"
+        ],
+        "Plans": [
+          {
+            "Node Type": "Aggregate",
+            "Strategy": "Sorted",
+            "Partial Mode": "Finalize",
+            "Parent Relationship": "Outer",
+            "Parallel Aware": false,
+            "Async Capable": false,
+            "Startup Cost": 6142.76,
+            "Total Cost": 6144.34,
+            "Plan Rows": 7,
+            "Plan Width": 43,
+            "Disabled": false,
+            "Group Key": [
+              "c.country"
+            ],
+            "Plans": [
+              {
+                "Node Type": "Gather Merge",
+                "Parent Relationship": "Outer",
+                "Parallel Aware": false,
+                "Async Capable": false,
+                "Startup Cost": 6142.76,
+                "Total Cost": 6144.13,
+                "Plan Rows": 12,
+                "Plan Width": 43,
+                "Disabled": false,
+                "Workers Planned": 1,
+                "Plans": [
+                  {
+                    "Node Type": "Sort",
+                    "Parent Relationship": "Outer",
+                    "Parallel Aware": false,
+                    "Async Capable": false,
+                    "Startup Cost": 5142.75,
+                    "Total Cost": 5142.77,
+                    "Plan Rows": 7,
+                    "Plan Width": 43,
+                    "Disabled": false,
+                    "Sort Key": [
+                      "c.country"
+                    ],
+                    "Plans": [
+                      {
+                        "Node Type": "Aggregate",
+                        "Strategy": "Hashed",
+                        "Partial Mode": "Partial",
+                        "Parent Relationship": "Outer",
+                        "Parallel Aware": false,
+                        "Async Capable": false,
+                        "Startup Cost": 5142.57,
+                        "Total Cost": 5142.66,
+                        "Plan Rows": 7,
+                        "Plan Width": 43,
+                        "Disabled": false,
+                        "Group Key": [
+                          "c.country"
+                        ],
+                        "Planned Partitions": 0,
+                        "Plans": [
+                          {
+                            "Node Type": "Hash Join",
+                            "Parent Relationship": "Outer",
+                            "Parallel Aware": false,
+                            "Async Capable": false,
+                            "Join Type": "Inner",
+                            "Startup Cost": 617,
+                            "Total Cost": 5072.95,
+                            "Plan Rows": 9282,
+                            "Plan Width": 8,
+                            "Disabled": false,
+                            "Inner Unique": true,
+                            "Hash Cond": "(o.customer_id = c.id)",
+                            "Plans": [
+                              {
+                                "Node Type": "Seq Scan",
+                                "Parent Relationship": "Outer",
+                                "Parallel Aware": true,
+                                "Async Capable": false,
+                                "Relation Name": "orders",
+                                "Alias": "o",
+                                "Startup Cost": 0,
+                                "Total Cost": 4431.59,
+                                "Plan Rows": 9282,
+                                "Plan Width": 9,
+                                "Disabled": false,
+                                "Filter": "(status = 'pending'::text)"
+                              },
+                              {
+                                "Node Type": "Hash",
+                                "Parent Relationship": "Inner",
+                                "Parallel Aware": false,
+                                "Async Capable": false,
+                                "Startup Cost": 367,
+                                "Total Cost": 367,
+                                "Plan Rows": 20000,
+                                "Plan Width": 7,
+                                "Disabled": false,
+                                "Plans": [
+                                  {
+                                    "Node Type": "Seq Scan",
+                                    "Parent Relationship": "Outer",
+                                    "Parallel Aware": false,
+                                    "Async Capable": false,
+                                    "Relation Name": "customers",
+                                    "Alias": "c",
+                                    "Startup Cost": 0,
+                                    "Total Cost": 367,
+                                    "Plan Rows": 20000,
+                                    "Plan Width": 7,
+                                    "Disabled": false
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "text": "Sort  (cost=6144.44..6144.46 rows=7 width=43)\n  Sort Key: (sum(o.total)) DESC\n  ->  Finalize GroupAggregate  (cost=6142.76..6144.34 rows=7 width=43)\n        Group Key: c.country\n        ->  Gather Merge  (cost=6142.76..6144.13 rows=12 width=43)\n              Workers Planned: 1\n              ->  Sort  (cost=5142.75..5142.77 rows=7 width=43)\n                    Sort Key: c.country\n                    ->  Partial HashAggregate  (cost=5142.57..5142.66 rows=7 width=43)\n                          Group Key: c.country\n                          ->  Hash Join  (cost=617.00..5072.95 rows=9282 width=8)\n                                Hash Cond: (o.customer_id = c.id)\n                                ->  Parallel Seq Scan on orders o  (cost=0.00..4431.59 rows=9282 width=9)\n                                      Filter: (status = 'pending'::text)\n                                ->  Hash  (cost=367.00..367.00 rows=20000 width=7)\n                                      ->  Seq Scan on customers c  (cost=0.00..367.00 rows=20000 width=7)"
+}

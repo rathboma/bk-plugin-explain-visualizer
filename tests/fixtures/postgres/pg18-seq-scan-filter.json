@@ -1,0 +1,55 @@
+{
+  "name": "pg18-seq-scan-filter",
+  "serverVersion": "18.6 (Debian 18.6-1.pgdg13+2)",
+  "analyze": true,
+  "modifies": false,
+  "query": "SELECT * FROM customers WHERE email LIKE '%99@example.com'",
+  "json": [
+    {
+      "Plan": {
+        "Node Type": "Seq Scan",
+        "Parallel Aware": false,
+        "Async Capable": false,
+        "Relation Name": "customers",
+        "Alias": "customers",
+        "Startup Cost": 0,
+        "Total Cost": 417,
+        "Plan Rows": 2,
+        "Plan Width": 36,
+        "Actual Startup Time": 0.026,
+        "Actual Total Time": 1.475,
+        "Actual Rows": 200,
+        "Actual Loops": 1,
+        "Disabled": false,
+        "Filter": "(email ~~ '%99@example.com'::text)",
+        "Rows Removed by Filter": 19800,
+        "Shared Hit Blocks": 167,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0
+      },
+      "Planning": {
+        "Shared Hit Blocks": 78,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0
+      },
+      "Planning Time": 0.377,
+      "Triggers": [],
+      "Execution Time": 1.526
+    }
+  ],
+  "text": "Seq Scan on customers  (cost=0.00..417.00 rows=2 width=36) (actual time=0.016..1.550 rows=200.00 loops=1)\n  Filter: (email ~~ '%99@example.com'::text)\n  Rows Removed by Filter: 19800\n  Buffers: shared hit=167\nPlanning Time: 0.057 ms\nExecution Time: 1.570 ms"
+}

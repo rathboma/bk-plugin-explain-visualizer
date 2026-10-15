@@ -1,0 +1,31 @@
+name: Release
+
+# Push a tag matching the manifest version (e.g. v0.1.0) to build the plugin
+# and create a draft GitHub release with the two assets Beekeeper Studio's
+# plugin manager needs: manifest.json and <id>-<version>.zip.
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - run: yarn build
+      - run: yarn test
+      - run: yarn package
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: |
+            manifest.json
+            *.zip
