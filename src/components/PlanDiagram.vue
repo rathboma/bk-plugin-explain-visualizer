@@ -19,7 +19,7 @@ const parents = computed(() => (plan.value ? parentMap(plan.value) : new Map<num
 
 const MIN_ZOOM = 0.15;
 const MAX_ZOOM = 2;
-/** Fitting never zooms out further than this, so cards stay readable. */
+/** The automatic fit never zooms out further than this, so cards stay readable. */
 const MIN_FIT_ZOOM = 0.7;
 const PAD = 32;
 const clamp = (k: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, k));
@@ -40,14 +40,18 @@ function setView(x: number, y: number, k: number, animate = false) {
   if (animate) window.setTimeout(() => (animating.value = false), 220);
 }
 
-/** Shows the whole plan, or the top of it when it is too big to be legible. */
-function fit(animate = false) {
+/**
+ * Shows the whole plan. The automatic fit stops at a readable zoom and shows
+ * the top of big plans instead; `whole` (the Fit button) always fits all.
+ */
+function fit(animate = false, whole = false) {
   const el = viewport.value;
   const l = layout.value;
   if (!el || !l) return;
   const width = el.clientWidth;
   const height = el.clientHeight;
-  const k = clamp(Math.max(MIN_FIT_ZOOM, Math.min(1, (width - PAD * 2) / l.width, (height - PAD * 2) / l.height)));
+  const fitted = Math.min(1, (width - PAD * 2) / l.width, (height - PAD * 2) / l.height);
+  const k = clamp(whole ? fitted : Math.max(MIN_FIT_ZOOM, fitted));
   const scaledHeight = l.height * k;
   const scaledWidth = l.width * k;
   const root = l.byId.get(plan.value!.root.id)!;
@@ -154,7 +158,7 @@ function onKeydown(event: KeyboardEvent) {
       zoomAt(1 / 1.2, undefined, undefined, true);
       return;
     case "0":
-      fit(true);
+      fit(true, true);
       return;
     default:
       return;
@@ -249,7 +253,7 @@ defineExpose({ fit });
       <button class="btn ghost icon-only" title="Zoom in (+)" @click="zoomAt(1.25, undefined, undefined, true)">
         <Icon name="zoomIn" />
       </button>
-      <button class="btn ghost icon-only" title="Fit to view (0)" @click="fit(true)">
+      <button class="btn ghost icon-only" title="Fit to view (0)" @click="fit(true, true)">
         <Icon name="fit" />
       </button>
     </div>
