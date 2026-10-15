@@ -1,0 +1,49 @@
+{
+  "id": "explain-visualizer",
+  "name": "Explain Visualizer",
+  "author": {
+    "name": "Beekeeper Studio",
+    "url": "https://www.beekeeperstudio.io"
+  },
+  "description": "Visualize query execution plans as an interactive diagram, and find the slow parts of a query.",
+  "version": "0.1.0",
+  "icon": "account_tree",
+  "manifestVersion": 1,
+  "minAppVersion": "5.5.0",
+  "capabilities": {
+    "views": [
+      {
+        "id": "explain-visualizer",
+        "name": "Explain Visualizer",
+        "type": "base-tab",
+        "entry": "dist/index.html"
+      }
+    ],
+    "menu": [
+      {
+        "command": "explain-query",
+        "name": "Visualize Explain Plan",
+        "view": "explain-visualizer",
+        "placement": "editor.query.context"
+      },
+      {
+        "command": "new-explain",
+        "name": "Explain Visualizer",
+        "view": "explain-visualizer",
+        "placement": "newTabDropdown"
+      },
+      {
+        "command": "visualize-cell",
+        "name": "Visualize Explain Plan",
+        "view": "explain-visualizer",
+        "placement": "results.cell.context"
+      },
+      {
+        "command": "visualize-column",
+        "name": "Visualize Explain Plan",
+        "view": "explain-visualizer",
+        "placement": "results.columnHeader.context"
+      }
+    ]
+  }
+}

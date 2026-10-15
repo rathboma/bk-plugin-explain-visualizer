@@ -1,0 +1,170 @@
+{
+  "name": "pg18-parallel-aggregate",
+  "serverVersion": "18.6 (Debian 18.6-1.pgdg13+2)",
+  "analyze": true,
+  "modifies": false,
+  "query": "SELECT product_id, sum(quantity) AS units\nFROM order_items\nGROUP BY product_id",
+  "json": [
+    {
+      "Plan": {
+        "Node Type": "Aggregate",
+        "Strategy": "Hashed",
+        "Partial Mode": "Finalize",
+        "Parallel Aware": false,
+        "Async Capable": false,
+        "Startup Cost": 9096,
+        "Total Cost": 9116,
+        "Plan Rows": 2000,
+        "Plan Width": 12,
+        "Actual Startup Time": 61.835,
+        "Actual Total Time": 65.97,
+        "Actual Rows": 2000,
+        "Actual Loops": 1,
+        "Disabled": false,
+        "Group Key": [
+          "product_id"
+        ],
+        "Planned Partitions": 0,
+        "HashAgg Batches": 1,
+        "Peak Memory Usage": 217,
+        "Disk Usage": 0,
+        "Shared Hit Blocks": 3822,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0,
+        "Plans": [
+          {
+            "Node Type": "Gather",
+            "Parent Relationship": "Outer",
+            "Parallel Aware": false,
+            "Async Capable": false,
+            "Startup Cost": 8572,
+            "Total Cost": 9072,
+            "Plan Rows": 4800,
+            "Plan Width": 12,
+            "Actual Startup Time": 60.189,
+            "Actual Total Time": 64.862,
+            "Actual Rows": 6000,
+            "Actual Loops": 1,
+            "Disabled": false,
+            "Workers Planned": 2,
+            "Workers Launched": 2,
+            "Single Copy": false,
+            "Shared Hit Blocks": 3822,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "Local Hit Blocks": 0,
+            "Local Read Blocks": 0,
+            "Local Dirtied Blocks": 0,
+            "Local Written Blocks": 0,
+            "Temp Read Blocks": 0,
+            "Temp Written Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Aggregate",
+                "Strategy": "Hashed",
+                "Partial Mode": "Partial",
+                "Parent Relationship": "Outer",
+                "Parallel Aware": false,
+                "Async Capable": false,
+                "Startup Cost": 7572,
+                "Total Cost": 7592,
+                "Plan Rows": 2000,
+                "Plan Width": 12,
+                "Actual Startup Time": 57.275,
+                "Actual Total Time": 57.455,
+                "Actual Rows": 2000,
+                "Actual Loops": 3,
+                "Disabled": false,
+                "Group Key": [
+                  "product_id"
+                ],
+                "Planned Partitions": 0,
+                "HashAgg Batches": 1,
+                "Peak Memory Usage": 217,
+                "Disk Usage": 0,
+                "Shared Hit Blocks": 3822,
+                "Shared Read Blocks": 0,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Local Hit Blocks": 0,
+                "Local Read Blocks": 0,
+                "Local Dirtied Blocks": 0,
+                "Local Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Workers": [
+                  {
+                    "Worker Number": 0,
+                    "HashAgg Batches": 1,
+                    "Peak Memory Usage": 217,
+                    "Disk Usage": 0
+                  },
+                  {
+                    "Worker Number": 1,
+                    "HashAgg Batches": 1,
+                    "Peak Memory Usage": 217,
+                    "Disk Usage": 0
+                  }
+                ],
+                "Plans": [
+                  {
+                    "Node Type": "Seq Scan",
+                    "Parent Relationship": "Outer",
+                    "Parallel Aware": true,
+                    "Async Capable": false,
+                    "Relation Name": "order_items",
+                    "Alias": "order_items",
+                    "Startup Cost": 0,
+                    "Total Cost": 6322,
+                    "Plan Rows": 250000,
+                    "Plan Width": 8,
+                    "Actual Startup Time": 0.006,
+                    "Actual Total Time": 19.607,
+                    "Actual Rows": 200000,
+                    "Actual Loops": 3,
+                    "Disabled": false,
+                    "Shared Hit Blocks": 3822,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Local Hit Blocks": 0,
+                    "Local Read Blocks": 0,
+                    "Local Dirtied Blocks": 0,
+                    "Local Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0,
+                    "Workers": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "Planning": {
+        "Shared Hit Blocks": 40,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0
+      },
+      "Planning Time": 0.146,
+      "Triggers": [],
+      "Execution Time": 66.17
+    }
+  ],
+  "text": "Finalize HashAggregate  (cost=9096.00..9116.00 rows=2000 width=12) (actual time=61.338..61.630 rows=2000.00 loops=1)\n  Group Key: product_id\n  Batches: 1  Memory Usage: 217kB\n  Buffers: shared hit=3822\n  ->  Gather  (cost=8572.00..9072.00 rows=4800 width=12) (actual time=52.174..59.664 rows=6000.00 loops=1)\n        Workers Planned: 2\n        Workers Launched: 2\n        Buffers: shared hit=3822\n        ->  Partial HashAggregate  (cost=7572.00..7592.00 rows=2000 width=12) (actual time=51.287..51.489 rows=2000.00 loops=3)\n              Group Key: product_id\n              Batches: 1  Memory Usage: 217kB\n              Buffers: shared hit=3822\n              Worker 0:  Batches: 1  Memory Usage: 217kB\n              Worker 1:  Batches: 1  Memory Usage: 217kB\n              ->  Parallel Seq Scan on order_items  (cost=0.00..6322.00 rows=250000 width=8) (actual time=0.014..26.399 rows=200000.00 loops=3)\n                    Buffers: shared hit=3822\nPlanning Time: 0.109 ms\nExecution Time: 61.787 ms"
+}

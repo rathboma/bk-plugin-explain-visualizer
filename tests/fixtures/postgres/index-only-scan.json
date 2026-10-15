@@ -1,0 +1,57 @@
+{
+  "name": "index-only-scan",
+  "serverVersion": "17.11 (Debian 17.11-1.pgdg13+2)",
+  "analyze": true,
+  "modifies": false,
+  "query": "SELECT customer_id FROM orders WHERE customer_id BETWEEN 100 AND 200",
+  "json": [
+    {
+      "Plan": {
+        "Node Type": "Index Only Scan",
+        "Parallel Aware": false,
+        "Async Capable": false,
+        "Scan Direction": "Forward",
+        "Index Name": "orders_customer_id_idx",
+        "Relation Name": "orders",
+        "Alias": "orders",
+        "Startup Cost": 0.29,
+        "Total Cost": 28.5,
+        "Plan Rows": 1010,
+        "Plan Width": 4,
+        "Actual Startup Time": 0.009,
+        "Actual Total Time": 0.072,
+        "Actual Rows": 1010,
+        "Actual Loops": 1,
+        "Index Cond": "((customer_id >= 100) AND (customer_id <= 200))",
+        "Rows Removed by Index Recheck": 0,
+        "Heap Fetches": 0,
+        "Shared Hit Blocks": 4,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0
+      },
+      "Planning": {
+        "Shared Hit Blocks": 6,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0
+      },
+      "Planning Time": 0.08,
+      "Triggers": [],
+      "Execution Time": 0.121
+    }
+  ],
+  "text": "Index Only Scan using orders_customer_id_idx on orders  (cost=0.29..28.50 rows=1010 width=4) (actual time=0.009..0.068 rows=1010 loops=1)\n  Index Cond: ((customer_id >= 100) AND (customer_id <= 200))\n  Heap Fetches: 0\n  Buffers: shared hit=4\nPlanning:\n  Buffers: shared hit=3\nPlanning Time: 0.076 ms\nExecution Time: 0.113 ms"
+}

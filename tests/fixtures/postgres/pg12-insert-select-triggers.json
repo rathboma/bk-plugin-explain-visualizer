@@ -1,0 +1,113 @@
+{
+  "name": "pg12-insert-select-triggers",
+  "serverVersion": "12.22 (Debian 12.22-1.pgdg120+1)",
+  "analyze": true,
+  "modifies": true,
+  "query": "INSERT INTO order_items (order_id, product_id, quantity, unit_price)\nSELECT id, 1, 1, 9.99 FROM orders WHERE customer_id < 20",
+  "json": [
+    {
+      "Plan": {
+        "Node Type": "ModifyTable",
+        "Operation": "Insert",
+        "Parallel Aware": false,
+        "Relation Name": "order_items",
+        "Alias": "order_items",
+        "Startup Cost": 5.92,
+        "Total Cost": 616.31,
+        "Plan Rows": 193,
+        "Plan Width": 32,
+        "Actual Startup Time": 3.955,
+        "Actual Total Time": 3.957,
+        "Actual Rows": 0,
+        "Actual Loops": 1,
+        "Shared Hit Blocks": 1160,
+        "Shared Read Blocks": 192,
+        "Shared Dirtied Blocks": 190,
+        "Shared Written Blocks": 1,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0,
+        "Plans": [
+          {
+            "Node Type": "Bitmap Heap Scan",
+            "Parent Relationship": "Member",
+            "Parallel Aware": false,
+            "Relation Name": "orders",
+            "Alias": "orders",
+            "Startup Cost": 5.92,
+            "Total Cost": 616.31,
+            "Plan Rows": 193,
+            "Plan Width": 32,
+            "Actual Startup Time": 0.073,
+            "Actual Total Time": 0.449,
+            "Actual Rows": 190,
+            "Actual Loops": 1,
+            "Recheck Cond": "(customer_id < 20)",
+            "Rows Removed by Index Recheck": 0,
+            "Exact Heap Blocks": 181,
+            "Lossy Heap Blocks": 0,
+            "Shared Hit Blocks": 386,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "Local Hit Blocks": 0,
+            "Local Read Blocks": 0,
+            "Local Dirtied Blocks": 0,
+            "Local Written Blocks": 0,
+            "Temp Read Blocks": 0,
+            "Temp Written Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Bitmap Index Scan",
+                "Parent Relationship": "Outer",
+                "Parallel Aware": false,
+                "Index Name": "orders_customer_id_idx",
+                "Startup Cost": 0,
+                "Total Cost": 5.87,
+                "Plan Rows": 193,
+                "Plan Width": 0,
+                "Actual Startup Time": 0.011,
+                "Actual Total Time": 0.011,
+                "Actual Rows": 190,
+                "Actual Loops": 1,
+                "Index Cond": "(customer_id < 20)",
+                "Shared Hit Blocks": 3,
+                "Shared Read Blocks": 0,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Local Hit Blocks": 0,
+                "Local Read Blocks": 0,
+                "Local Dirtied Blocks": 0,
+                "Local Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0
+              }
+            ]
+          }
+        ]
+      },
+      "Planning Time": 0.148,
+      "Triggers": [
+        {
+          "Trigger Name": "RI_ConstraintTrigger_c_16434",
+          "Constraint Name": "order_items_order_id_fkey",
+          "Relation": "order_items",
+          "Time": 2.268,
+          "Calls": 190
+        },
+        {
+          "Trigger Name": "RI_ConstraintTrigger_c_16439",
+          "Constraint Name": "order_items_product_id_fkey",
+          "Relation": "order_items",
+          "Time": 1.003,
+          "Calls": 190
+        }
+      ],
+      "Execution Time": 7.283
+    }
+  ],
+  "text": "Insert on order_items  (cost=5.92..616.31 rows=193 width=32) (actual time=1.262..1.263 rows=0 loops=1)\n  Buffers: shared hit=1335 dirtied=3 written=3\n  ->  Bitmap Heap Scan on orders  (cost=5.92..616.31 rows=193 width=32) (actual time=0.032..0.333 rows=190 loops=1)\n        Recheck Cond: (customer_id < 20)\n        Heap Blocks: exact=181\n        Buffers: shared hit=374\n        ->  Bitmap Index Scan on orders_customer_id_idx  (cost=0.00..5.87 rows=193 width=0) (actual time=0.010..0.011 rows=190 loops=1)\n              Index Cond: (customer_id < 20)\n              Buffers: shared hit=3\nPlanning Time: 0.083 ms\nTrigger for constraint order_items_order_id_fkey: time=1.278 calls=190\nTrigger for constraint order_items_product_id_fkey: time=0.771 calls=190\nExecution Time: 3.355 ms"
+}

@@ -1,0 +1,131 @@
+{
+  "name": "disk-sort",
+  "serverVersion": "17.11 (Debian 17.11-1.pgdg13+2)",
+  "analyze": true,
+  "modifies": false,
+  "query": "SELECT * FROM order_items ORDER BY unit_price, id",
+  "json": [
+    {
+      "Plan": {
+        "Node Type": "Gather Merge",
+        "Parallel Aware": false,
+        "Async Capable": false,
+        "Startup Cost": 45118.98,
+        "Total Cost": 103456.39,
+        "Plan Rows": 500000,
+        "Plan Width": 21,
+        "Actual Startup Time": 194.638,
+        "Actual Total Time": 390.98,
+        "Actual Rows": 600000,
+        "Actual Loops": 1,
+        "Workers Planned": 2,
+        "Workers Launched": 2,
+        "Shared Hit Blocks": 3908,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 7695,
+        "Temp Written Blocks": 8278,
+        "Plans": [
+          {
+            "Node Type": "Sort",
+            "Parent Relationship": "Outer",
+            "Parallel Aware": false,
+            "Async Capable": false,
+            "Startup Cost": 44118.96,
+            "Total Cost": 44743.96,
+            "Plan Rows": 250000,
+            "Plan Width": 21,
+            "Actual Startup Time": 177.421,
+            "Actual Total Time": 213.696,
+            "Actual Rows": 200000,
+            "Actual Loops": 3,
+            "Sort Key": [
+              "unit_price",
+              "id"
+            ],
+            "Sort Method": "external merge",
+            "Sort Space Used": 6824,
+            "Sort Space Type": "Disk",
+            "Shared Hit Blocks": 3908,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "Local Hit Blocks": 0,
+            "Local Read Blocks": 0,
+            "Local Dirtied Blocks": 0,
+            "Local Written Blocks": 0,
+            "Temp Read Blocks": 7695,
+            "Temp Written Blocks": 8278,
+            "Workers": [
+              {
+                "Worker Number": 0,
+                "Sort Method": "external merge",
+                "Sort Space Used": 5880,
+                "Sort Space Type": "Disk"
+              },
+              {
+                "Worker Number": 1,
+                "Sort Method": "external merge",
+                "Sort Space Used": 5664,
+                "Sort Space Type": "Disk"
+              }
+            ],
+            "Plans": [
+              {
+                "Node Type": "Seq Scan",
+                "Parent Relationship": "Outer",
+                "Parallel Aware": true,
+                "Async Capable": false,
+                "Relation Name": "order_items",
+                "Alias": "order_items",
+                "Startup Cost": 0,
+                "Total Cost": 6322,
+                "Plan Rows": 250000,
+                "Plan Width": 21,
+                "Actual Startup Time": 0.008,
+                "Actual Total Time": 16.832,
+                "Actual Rows": 200000,
+                "Actual Loops": 3,
+                "Shared Hit Blocks": 3822,
+                "Shared Read Blocks": 0,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Local Hit Blocks": 0,
+                "Local Read Blocks": 0,
+                "Local Dirtied Blocks": 0,
+                "Local Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Workers": []
+              }
+            ]
+          }
+        ]
+      },
+      "Settings": {
+        "work_mem": "64kB"
+      },
+      "Planning": {
+        "Shared Hit Blocks": 13,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0
+      },
+      "Planning Time": 0.15,
+      "Triggers": [],
+      "Execution Time": 419.581
+    }
+  ],
+  "text": "Gather Merge  (cost=45118.98..103456.39 rows=500000 width=21) (actual time=166.100..339.924 rows=600000 loops=1)\n  Workers Planned: 2\n  Workers Launched: 2\n  Buffers: shared hit=3908, temp read=6852 written=7435\n  ->  Sort  (cost=44118.96..44743.96 rows=250000 width=21) (actual time=156.422..192.971 rows=200000 loops=3)\n        Sort Key: unit_price, id\n        Sort Method: external merge  Disk: 6400kB\n        Buffers: shared hit=3908, temp read=6852 written=7435\n        Worker 0:  Sort Method: external merge  Disk: 6008kB\n        Worker 1:  Sort Method: external merge  Disk: 6000kB\n        ->  Parallel Seq Scan on order_items  (cost=0.00..6322.00 rows=250000 width=21) (actual time=0.008..15.400 rows=200000 loops=3)\n              Buffers: shared hit=3822\nSettings: work_mem = '64kB'\nPlanning Time: 0.096 ms\nExecution Time: 364.823 ms"
+}
