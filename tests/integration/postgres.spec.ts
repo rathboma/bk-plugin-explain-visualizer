@@ -67,6 +67,17 @@ describe.skipIf(!url)("PostgreSQL engine against a live server", () => {
     expect(await count()).toBe(1000);
   });
 
+  it("rolls back writes made by functions a SELECT calls", async () => {
+    await pool.query(
+      "CREATE OR REPLACE FUNCTION explain_it_wipe() RETURNS int LANGUAGE sql AS 'DELETE FROM explain_it RETURNING 1'"
+    );
+    const server = await postgres.loadServerInfo!(run);
+    const result = await postgres.explain(request("SELECT explain_it_wipe()", true, server), run);
+    expect(result.plan.analyzed).toBe(true);
+    expect(await count()).toBe(1000);
+    await pool.query("DROP FUNCTION explain_it_wipe()");
+  });
+
   it("leaves the connection usable when the analyzed write fails", async () => {
     const server = await postgres.loadServerInfo!(run);
     await expect(

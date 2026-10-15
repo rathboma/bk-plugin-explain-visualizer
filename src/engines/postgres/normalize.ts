@@ -226,6 +226,9 @@ function workerProperties(node: PgNode): Property[] {
       parts.push(`sort=${worker["Sort Method"]} ${worker["Sort Space Used"] ?? "?"}kB ${worker["Sort Space Type"] ?? ""}`.trim());
     }
     if (worker["Peak Memory Usage"] !== undefined) parts.push(`memory=${worker["Peak Memory Usage"]}kB`);
+    const hit = num(worker["Shared Hit Blocks"]);
+    const read = num(worker["Shared Read Blocks"]);
+    if (hit || read) parts.push(`shared hit=${hit ?? 0} read=${read ?? 0}`);
     if (worker["Text"]) parts.push(String(worker["Text"]));
     if (parts.length) props.push({ group: "Workers", label, value: parts.join(", "), format: "text" });
   }

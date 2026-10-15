@@ -207,6 +207,20 @@ describe("PostgreSQL text plans", () => {
     expect(parsePostgresPlan(lines.map((l) => [l])).plan.root.operation).toBe("Bitmap Heap Scan");
   });
 
+  it("keeps a worker's buffer lines with the worker in VERBOSE output", () => {
+    const fixture = postgresFixture("parallel-verbose");
+    const fromText = parsePostgresPlan(fixture.text).plan;
+    const fromJson = parsePostgresPlan(fixture.json).plan;
+    const hits = (plan: Plan, operation: string) =>
+      one(plan, operation).properties.find((p) => p.label === "Shared Hit Blocks")?.value;
+    for (const operation of ["Partial HashAggregate", "Parallel Seq Scan"]) {
+      expect(hits(fromText, operation)).toBe(hits(fromJson, operation));
+    }
+    const workers = one(fromText, "Parallel Seq Scan").properties.filter((p) => p.group === "Workers");
+    expect(workers.map((p) => p.label)).toEqual(["Worker 0", "Worker 1"]);
+    expect(String(workers[0].value)).toMatch(/shared hit=\d+/);
+  });
+
   it("parses COSTS OFF output", () => {
     const text = "Hash Join\n  Hash Cond: (a.id = b.id)\n  ->  Seq Scan on a\n  ->  Hash\n        ->  Seq Scan on b";
     const { plan } = parsePostgresPlan(text);

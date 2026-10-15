@@ -103,7 +103,7 @@ export function createExplainer(host: Host) {
     state.selectedId = undefined;
     state.status = "done";
     state.error = "";
-    void host.setTitle(tabTitle(next.plan.query ?? (state.mode === "paste" ? "pasted plan" : state.query)));
+    void host.setTitle(next.plan.query ? tabTitle(next.plan.query) : "Query Plan");
     persist();
   }
 
@@ -112,12 +112,13 @@ export function createExplainer(host: Host) {
     state.error = message;
   }
 
+  /** Loaded once per tab. A failure is not cached, so the next run retries. */
   async function serverInfo(): Promise<ServerInfo | undefined> {
     if (state.server || !engine.value?.loadServerInfo) return state.server;
     try {
       state.server = await engine.value.loadServerInfo(host.runQuery);
     } catch {
-      state.server = {};
+      return undefined;
     }
     return state.server;
   }
@@ -129,7 +130,8 @@ export function createExplainer(host: Host) {
       fail("This database is not supported yet.");
       return;
     }
-    const statement = current.inspect(state.query);
+    const server = await serverInfo();
+    const statement = current.inspect(state.query, server);
     if (statement.error) return fail(statement.error);
 
     if (analyze && statement.hasParameters) {
@@ -144,6 +146,9 @@ export function createExplainer(host: Host) {
         "Explain Analyze runs the statement to measure it. This statement can change data: its changes are rolled back afterwards, but effects outside the database transaction (such as sequence values) are not undone.",
         "Run and Roll Back"
       );
+      if (proceed === undefined) {
+        return fail("This version of Beekeeper Studio can't ask for confirmation, so statements that change data can't be analyzed. Explain (without Analyze) still works.");
+      }
       if (!proceed) return;
     }
 
@@ -152,8 +157,10 @@ export function createExplainer(host: Host) {
     state.error = "";
     state.lastAnalyze = analyze;
     try {
-      const server = await serverInfo();
-      const output = await current.explain({ statement, analyze, options: state.options, server }, host.runQuery);
+      const output = await current.explain(
+        { statement, analyze, options: state.options, server, readOnlyConnection: readOnly.value },
+        host.runQuery
+      );
       if (run !== runCounter) return;
       showResult({ ...output, engineId: current.id });
     } catch (e) {
@@ -232,9 +239,12 @@ export function createExplainer(host: Host) {
       const requested = engine.value?.inspect(state.query).requestedOptions ?? {};
       const { analyze, ...options } = requested;
       if (Object.keys(options).length) state.options = { ...state.options, ...(options as ExplainOptionValues) };
+      // Saved first, so reopening the tab restores it rather than running it again.
+      persist();
       // Explaining is safe: the statement is planned, not run. ANALYZE only
-      // runs automatically when the user wrote EXPLAIN ANALYZE themselves.
-      if (engine.value) await explain(Boolean(analyze));
+      // runs automatically when the user wrote EXPLAIN ANALYZE themselves,
+      // and never on read-only connections, where it can't be rolled back.
+      if (engine.value) await explain(Boolean(analyze) && !readOnly.value);
     } else {
       persist();
     }

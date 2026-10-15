@@ -27,6 +27,8 @@ export interface ServerInfo {
   /** Engine-specific numeric version, e.g. 170002 for PostgreSQL 17.2. */
   version?: number;
   versionLabel?: string;
+  /** PostgreSQL: false when backslashes escape quotes in plain strings. */
+  standardConformingStrings?: boolean;
 }
 
 /** What an engine learned about a statement before explaining it. */
@@ -48,6 +50,8 @@ export interface ExplainRequest {
   analyze: boolean;
   options: ExplainOptionValues;
   server?: ServerInfo;
+  /** Beekeeper Studio's read-only mode, which only allows read statements. */
+  readOnlyConnection?: boolean;
 }
 
 export type RawFormat = "json" | "text" | "xml";
@@ -88,8 +92,11 @@ export interface ExplainEngine {
 
   /** Fetches the server version so options can be filtered. */
   loadServerInfo?(run: RunQuery): Promise<ServerInfo>;
-  /** Validates and classifies a statement. Never throws. */
-  inspect(sql: string): StatementInfo;
+  /**
+   * Validates and classifies a statement. Never throws. Pass the server info
+   * when known: it can change how the statement is read.
+   */
+  inspect(sql: string, server?: ServerInfo): StatementInfo;
   /** Builds the SQL that will be sent for a request. */
   buildExplainSql(request: ExplainRequest): string;
   /** Runs EXPLAIN through the host and parses the output. */

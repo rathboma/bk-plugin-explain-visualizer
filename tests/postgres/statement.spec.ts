@@ -27,6 +27,30 @@ describe("tokenize / splitStatements", () => {
   it("drops statements that are only comments", () => {
     expect(splitStatements("-- nothing here\n;  /* or here */ ;")).toHaveLength(0);
   });
+
+  // Each of these hides "DELETE FROM victim" from a lexer that reads SQL
+  // differently from PostgreSQL. They must be seen as three statements.
+  it.each([
+    ["a dollar quote with a long tag", `SELECT $${"t".repeat(70)}$ ' $${"t".repeat(70)}$; DELETE FROM victim; SELECT ' x'`],
+    ["a non-breaking space before $$ (part of the name to PostgreSQL)", "SELECT 1 AS\u00a0$$; DELETE FROM victim; SELECT 1 AS\u00a0$$"],
+    ["a byte order mark before $$", "SELECT 1 AS\ufeff$$; DELETE FROM victim; SELECT 1 AS\ufeff$$"],
+    ["a -- comment ended by a carriage return", "SELECT 1 -- c\r; DELETE FROM victim; --\nSELECT 2"],
+  ])("does not let %s hide a statement", (_name, sql) => {
+    expect(splitStatements(sql)).toHaveLength(3);
+    expect(inspectStatement(sql).error).toMatch(/3 statements/);
+  });
+
+  it("reads backslash escapes when standard_conforming_strings is off", () => {
+    const sql = "SELECT '\\'' ; DELETE FROM victim; SELECT ''";
+    expect(splitStatements(sql)).toHaveLength(1);
+    expect(splitStatements(sql, { backslashQuotes: true })).toHaveLength(3);
+    expect(inspectStatement(sql, { standardConformingStrings: false }).error).toMatch(/3 statements/);
+  });
+
+  it("treats colons inside brackets as array slices", () => {
+    expect(inspectStatement("SELECT a[lo:hi], b[1:2] FROM t").error).toBeUndefined();
+    expect(inspectStatement("SELECT * FROM t WHERE id = :id").error).toMatch(/:id/);
+  });
 });
 
 describe("inspectStatement", () => {
@@ -58,6 +82,8 @@ describe("inspectStatement", () => {
     ["CREATE TABLE x AS SELECT 1", true],
     ["EXECUTE my_statement(1)", true],
     ["SELECT 'delete from t'", false],
+    ["(SELECT 1) UNION (SELECT 2)", false],
+    ["((SELECT 1)) UNION (DELETE FROM t RETURNING 1)", true],
     [`SELECT "update" FROM t`, false],
   ])("classifies %s (modifies data: %s)", (sql, modifies) => {
     expect(inspectStatement(sql).modifiesData).toBe(modifies);
@@ -96,13 +122,21 @@ describe("buildExplainSql", () => {
 
   it("adds analyze-only options when analyzing", () => {
     expect(buildExplainSql(request("SELECT 1", { analyze: true }))).toBe(
-      "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT 1"
+      "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT 1;\nROLLBACK;"
     );
   });
 
-  it("rolls back data-modifying statements that are analyzed", () => {
-    const sql = buildExplainSql(request("DELETE FROM t WHERE id = 1;", { analyze: true }));
-    expect(sql).toBe("EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) DELETE FROM t WHERE id = 1;\nROLLBACK;");
+  it("rolls back every analyzed statement, since even a SELECT can call a function that writes", () => {
+    expect(buildExplainSql(request("DELETE FROM t WHERE id = 1;", { analyze: true }))).toBe(
+      "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) DELETE FROM t WHERE id = 1;\nROLLBACK;"
+    );
+    expect(buildExplainSql(request("SELECT wipe()", { analyze: true }))).toMatch(/;\nROLLBACK;$/);
+  });
+
+  it("leaves out the ROLLBACK on read-only connections, which refuse it", () => {
+    expect(buildExplainSql(request("SELECT 1", { analyze: true, readOnlyConnection: true }))).toBe(
+      "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT 1"
+    );
   });
 
   it("does not add a rollback when only estimating a write", () => {
@@ -112,17 +146,17 @@ describe("buildExplainSql", () => {
   it("skips options the server does not support", () => {
     const options = { buffers: true, verbose: true, settings: true, wal: true };
     expect(buildExplainSql(request("SELECT 1", { analyze: true, options, server: { version: 110000 } }))).toBe(
-      "EXPLAIN (ANALYZE, VERBOSE, BUFFERS, FORMAT JSON) SELECT 1"
+      "EXPLAIN (ANALYZE, VERBOSE, BUFFERS, FORMAT JSON) SELECT 1;\nROLLBACK;"
     );
     expect(buildExplainSql(request("SELECT 1", { analyze: true, options, server: { version: 170000 } }))).toBe(
-      "EXPLAIN (ANALYZE, VERBOSE, SETTINGS, BUFFERS, WAL, FORMAT JSON) SELECT 1"
+      "EXPLAIN (ANALYZE, VERBOSE, SETTINGS, BUFFERS, WAL, FORMAT JSON) SELECT 1;\nROLLBACK;"
     );
   });
 
   it("leaves out version-specific options when the version is unknown", () => {
     const options = { buffers: true, verbose: false, settings: true, wal: true };
     expect(buildExplainSql(request("SELECT 1", { analyze: true, options, server: undefined }))).toBe(
-      "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT 1"
+      "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT 1;\nROLLBACK;"
     );
   });
 

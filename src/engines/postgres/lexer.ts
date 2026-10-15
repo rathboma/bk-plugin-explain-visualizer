@@ -2,6 +2,11 @@
  * A small PostgreSQL lexer. It is not a parser: it only knows enough to skip
  * comments and quoted text, so statements can be split on `;` and keywords can
  * be found without being fooled by strings or identifiers.
+ *
+ * Where it decides what is code and what is not, it follows PostgreSQL's own
+ * scanner (src/backend/parser/scan.l). That matters for safety: if the two
+ * disagreed, text this lexer took for a string or comment could hide a second
+ * statement that the server would run.
  */
 
 export type TokenType = "word" | "identifier" | "string" | "number" | "param" | "symbol";
@@ -13,21 +18,35 @@ export interface Token {
   end: number;
 }
 
-const WORD_START = /[A-Za-z_\u0080-￿]/;
-const WORD_PART = /[A-Za-z0-9_$\u0080-￿]/;
-const DIGIT = /[0-9]/;
-const DOLLAR_TAG = /^\$([A-Za-z_\u0080-￿][A-Za-z0-9_\u0080-￿]*)?\$/;
+export interface LexerOptions {
+  /**
+   * `standard_conforming_strings = off`: backslashes escape quotes in plain
+   * '...' strings too, not only in E'...' strings.
+   */
+  backslashQuotes?: boolean;
+}
 
-export function tokenize(sql: string): Token[] {
+// scan.l: space = [ \t\n\r\f\v]. Other characters, including non-breaking
+// spaces, are not whitespace to PostgreSQL.
+const isSpace = (ch: string) => ch === " " || ch === "\t" || ch === "\n" || ch === "\r" || ch === "\f" || ch === "\v";
+const isDigit = (ch: string | undefined) => ch !== undefined && ch >= "0" && ch <= "9";
+// ident_start = [A-Za-z\200-\377_]: every non-ASCII character can start a name.
+const isWordStart = (ch: string | undefined) =>
+  ch !== undefined && ((ch >= "a" && ch <= "z") || (ch >= "A" && ch <= "Z") || ch === "_" || ch >= "\u0080");
+const isWordPart = (ch: string | undefined) => isWordStart(ch) || isDigit(ch) || ch === "$";
+const DOLLAR_TAG = /\$(?:[A-Za-z_\u0080-￿][A-Za-z0-9_\u0080-￿]*)?\$/y;
+
+export function tokenize(sql: string, options: LexerOptions = {}): Token[] {
   const tokens: Token[] = [];
   let i = 0;
+  let brackets = 0;
   const n = sql.length;
 
   const push = (type: TokenType, start: number, end: number) => {
     tokens.push({ type, text: sql.slice(start, end), start, end });
   };
 
-  // Reads a '...' string starting at the quote; `backslash` enables E'' escapes.
+  // Reads a quoted string or identifier starting at the opening quote.
   const readQuoted = (from: number, quote: string, backslash: boolean): number => {
     let j = from + 1;
     while (j < n) {
@@ -52,19 +71,20 @@ export function tokenize(sql: string): Token[] {
     const ch = sql[i];
     const next = sql[i + 1];
 
-    if (/\s/.test(ch)) {
+    if (isSpace(ch)) {
       i++;
       continue;
     }
 
-    // -- line comment
+    // -- comment, which ends at either newline character
     if (ch === "-" && next === "-") {
-      const eol = sql.indexOf("\n", i);
-      i = eol === -1 ? n : eol + 1;
+      let j = i + 2;
+      while (j < n && sql[j] !== "\n" && sql[j] !== "\r") j++;
+      i = j;
       continue;
     }
 
-    // /* block comment */, nestable in PostgreSQL
+    // /* block comment */, nestable
     if (ch === "/" && next === "*") {
       let depth = 1;
       let j = i + 2;
@@ -83,23 +103,30 @@ export function tokenize(sql: string): Token[] {
       continue;
     }
 
-    // E'...' (escape string), B'...', X'...', U&'...', N'...'
-    if (/[EeBbXxNn]/.test(ch) && next === "'") {
-      const end = readQuoted(i + 1, "'", ch === "E" || ch === "e");
+    // E'...' (escape string), B'...', X'...', N'...'
+    if ((ch === "E" || ch === "e") && next === "'") {
+      const end = readQuoted(i + 1, "'", true);
       push("string", i, end);
       i = end;
       continue;
     }
+    if ("BbXxNn".includes(ch) && next === "'") {
+      const end = readQuoted(i + 1, "'", Boolean(options.backslashQuotes));
+      push("string", i, end);
+      i = end;
+      continue;
+    }
+    // U&'...' and U&"..."
     if ((ch === "U" || ch === "u") && next === "&" && (sql[i + 2] === "'" || sql[i + 2] === '"')) {
       const quote = sql[i + 2];
-      const end = readQuoted(i + 2, quote, false);
+      const end = readQuoted(i + 2, quote, quote === "'" && Boolean(options.backslashQuotes));
       push(quote === "'" ? "string" : "identifier", i, end);
       i = end;
       continue;
     }
 
     if (ch === "'") {
-      const end = readQuoted(i, "'", false);
+      const end = readQuoted(i, "'", Boolean(options.backslashQuotes));
       push("string", i, end);
       i = end;
       continue;
@@ -114,15 +141,16 @@ export function tokenize(sql: string): Token[] {
 
     if (ch === "$") {
       // $1 positional parameter
-      if (next && DIGIT.test(next)) {
+      if (isDigit(next)) {
         let j = i + 1;
-        while (j < n && DIGIT.test(sql[j])) j++;
+        while (j < n && isDigit(sql[j])) j++;
         push("param", i, j);
         i = j;
         continue;
       }
       // $tag$ ... $tag$ dollar quoting
-      const match = DOLLAR_TAG.exec(sql.slice(i, i + 64));
+      DOLLAR_TAG.lastIndex = i;
+      const match = DOLLAR_TAG.exec(sql);
       if (match) {
         const tag = match[0];
         const close = sql.indexOf(tag, i + tag.length);
@@ -133,31 +161,34 @@ export function tokenize(sql: string): Token[] {
       }
     }
 
-    // :name style placeholders used by some clients. `::` is a cast.
-    if (ch === ":" && next !== ":" && sql[i - 1] !== ":" && next && WORD_START.test(next)) {
+    // :name placeholders used by some clients. `::` is a cast, and inside
+    // [...] a colon is an array slice (a[lo:hi]).
+    if (ch === ":" && next !== ":" && sql[i - 1] !== ":" && brackets === 0 && isWordStart(next)) {
       let j = i + 1;
-      while (j < n && WORD_PART.test(sql[j])) j++;
+      while (j < n && isWordPart(sql[j])) j++;
       push("param", i, j);
       i = j;
       continue;
     }
 
-    if (WORD_START.test(ch)) {
+    if (isWordStart(ch)) {
       let j = i + 1;
-      while (j < n && WORD_PART.test(sql[j])) j++;
+      while (j < n && isWordPart(sql[j])) j++;
       push("word", i, j);
       i = j;
       continue;
     }
 
-    if (DIGIT.test(ch) || (ch === "." && next && DIGIT.test(next))) {
+    if (isDigit(ch) || (ch === "." && isDigit(next))) {
       let j = i + 1;
-      while (j < n && /[0-9._eE]/.test(sql[j])) j++;
+      while (j < n && (isDigit(sql[j]) || sql[j] === "." || sql[j] === "e" || sql[j] === "E" || sql[j] === "_")) j++;
       push("number", i, j);
       i = j;
       continue;
     }
 
+    if (ch === "[") brackets++;
+    if (ch === "]" && brackets > 0) brackets--;
     push("symbol", i, i + 1);
     i++;
   }
@@ -171,8 +202,8 @@ export interface SplitStatement {
 }
 
 /** Splits SQL on top-level semicolons, dropping empty statements. */
-export function splitStatements(sql: string): SplitStatement[] {
-  const tokens = tokenize(sql);
+export function splitStatements(sql: string, options: LexerOptions = {}): SplitStatement[] {
+  const tokens = tokenize(sql, options);
   const statements: SplitStatement[] = [];
   let current: Token[] = [];
 

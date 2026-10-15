@@ -1,4 +1,4 @@
-import type { ExplainRequest, StatementInfo } from "../types";
+import type { ExplainRequest, ServerInfo, StatementInfo } from "../types";
 import { splitStatements, type Token } from "./lexer";
 
 /** Statements that only read data, as long as they contain no DML. */
@@ -79,8 +79,8 @@ function containsDml(tokens: Token[]): boolean {
 }
 
 /** Classifies a statement for EXPLAIN. Never throws. */
-export function inspectStatement(sql: string): StatementInfo {
-  const statements = splitStatements(sql);
+export function inspectStatement(sql: string, server?: ServerInfo): StatementInfo {
+  const statements = splitStatements(sql, { backslashQuotes: server?.standardConformingStrings === false });
   if (statements.length === 0) {
     return emptyInfo("", "No SQL statement to explain.");
   }
@@ -103,7 +103,8 @@ export function inspectStatement(sql: string): StatementInfo {
     return { ...emptyInfo("", "No SQL statement to explain."), requestedOptions };
   }
   const statement = sql.slice(body[0].start, body[body.length - 1].end);
-  const first = word(body[0]);
+  // "(SELECT ...) UNION (SELECT ...)" starts with parentheses.
+  const first = word(body.find((t) => t.text !== "("));
   const modifiesData = !first || !READ_STATEMENTS.has(first) || containsDml(body);
   const hasParameters = body.some((t) => t.type === "param");
   const named = body.find((t) => t.type === "param" && t.text.startsWith(":"));
@@ -149,11 +150,15 @@ export function buildExplainSql(request: ExplainRequest): string {
   parts.push("FORMAT JSON");
 
   const explain = `EXPLAIN (${parts.join(", ")}) ${statement.statement}`;
-  if (analyze && statement.modifiesData) {
+  if (analyze && !request.readOnlyConnection) {
     // Sent as one simple-protocol query, both statements share an implicit
     // transaction. The ROLLBACK discards everything EXPLAIN ANALYZE changed,
     // and if EXPLAIN fails the implicit transaction is aborted on its own, so
-    // the pooled connection is never left inside an open transaction.
+    // the pooled connection is never left inside an open transaction. Reads
+    // get it too: a SELECT can call a function that writes.
+    //
+    // Beekeeper Studio's read-only mode rejects ROLLBACK, so it is left out
+    // there; statements that look like writes are refused before this point.
     return `${explain};\nROLLBACK;`;
   }
   return explain;

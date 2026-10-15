@@ -128,6 +128,16 @@ WHERE oi.order_id < 5000
 GROUP BY p.category`,
   },
   {
+    name: "parallel-verbose",
+    analyze: true,
+    verbose: true,
+    warm: true,
+    query: `SELECT product_id, sum(quantity) AS units
+FROM order_items
+WHERE quantity > 1
+GROUP BY product_id`,
+  },
+  {
     name: "update-returning",
     analyze: true,
     modifies: true,
@@ -170,6 +180,8 @@ const version = (await client.query("SHOW server_version")).rows[0].server_versi
 fs.mkdirSync(outDir, { recursive: true });
 
 for (const c of cases.filter((c) => !only || only.includes(c.name))) {
+  // Warm the cache so both captures read the same buffers.
+  if (c.warm) await run(client, c, "JSON");
   const [json] = await run(client, c, "JSON");
   const text = (await run(client, c, "TEXT")).join("\n");
   const fixture = {

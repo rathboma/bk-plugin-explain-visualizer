@@ -338,6 +338,8 @@ function inferRelationships(node: PgNode): void {
 interface Frame {
   node: PgNode;
   indent: number;
+  /** A "Worker N:" line; lines indented below it describe that worker. */
+  worker?: boolean;
 }
 
 /** Parses text EXPLAIN output into `[{ Plan, ...summary }]` JSON form. */
@@ -456,7 +458,9 @@ export function parseTextPlan(input: string): Record<string, unknown>[] {
         continue;
       }
 
-      while (stack.length && stack[stack.length - 1].indent >= indent) stack.pop();
+      while (stack.length && (stack[stack.length - 1].indent >= indent || stack[stack.length - 1].worker)) {
+        stack.pop();
+      }
       const parent = stack[stack.length - 1]?.node ?? root;
       if (pendingSubplan && pendingSubplan.indent < indent) {
         const name = pendingSubplan.name;
@@ -474,7 +478,15 @@ export function parseTextPlan(input: string): Record<string, unknown>[] {
     const owner = stack[stack.length - 1].node;
     const colon = content.indexOf(":");
     if (colon === -1) continue;
-    applyProperty(owner, content.slice(0, colon).trim(), content.slice(colon + 1).trim());
+    const key = content.slice(0, colon).trim();
+    applyProperty(owner, key, content.slice(colon + 1).trim());
+    // With VERBOSE, a worker's buffers and I/O follow on deeper lines.
+    const worker = /^Worker (\d+)$/.exec(key);
+    if (worker) {
+      const workers = (owner["Workers"] ?? []) as PgNode[];
+      const entry = workers.find((w) => w["Worker Number"] === Number(worker[1]));
+      if (entry) stack.push({ node: entry, indent, worker: true });
+    }
   }
 
   if (!root) throw new Error("No plan nodes found in the text.");

@@ -29,7 +29,14 @@ async function save() {
     <div class="raw-toolbar">
       <button class="btn" @click="host.copy(result.raw)"><Icon name="copy" :size="14" /> Copy Plan</button>
       <button class="btn" @click="save"><Icon name="download" :size="14" /> Save…</button>
-      <button v-if="result.sql" class="btn" title="Open the EXPLAIN statement in a new query tab" @click="host.openQueryTab(result.sql)">
+      <!-- Analyzed SQL is left out: run one statement at a time in a query
+           tab, EXPLAIN ANALYZE would commit what the ROLLBACK undoes here. -->
+      <button
+        v-if="result.sql && !result.plan.analyzed"
+        class="btn"
+        title="Open the EXPLAIN statement in a new query tab"
+        @click="host.openQueryTab(result.sql)"
+      >
         <Icon name="external" :size="14" /> Open SQL in Query Tab
       </button>
       <span class="hint">{{ result.rawFormat === "json" ? "JSON" : "Text" }} · {{ result.plan.nodes.length }} nodes</span>

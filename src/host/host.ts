@@ -65,12 +65,16 @@ export const host = {
 
   setTitle: (title: string) => optional(() => setTabTitle(title)),
 
-  confirm: async (title: string, message: string, confirmLabel: string): Promise<boolean> => {
+  /**
+   * Asks the user in a Beekeeper Studio dialog. Resolves to undefined when the
+   * app can't show one: the plugin iframe isn't allowed to open
+   * window.confirm(), so there is no fallback.
+   */
+  confirm: async (title: string, message: string, confirmLabel: string): Promise<boolean | undefined> => {
     try {
       return await confirm(title, message, { confirmLabel, cancelLabel: "Cancel" });
     } catch {
-      // Hosts without a confirm dialog fall back to the browser's.
-      return window.confirm(`${title}\n\n${message}`);
+      return undefined;
     }
   },
 

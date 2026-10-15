@@ -96,12 +96,18 @@ export const postgres: ExplainEngine = {
   ],
 
   async loadServerInfo(run) {
-    const results = await run("SHOW server_version_num");
-    const row = results[0]?.rows[0];
-    const version = Number(row ? Object.values(row)[0] : NaN);
-    return Number.isFinite(version)
-      ? { version, versionLabel: `${Math.floor(version / 10000)}.${version % 100}` }
-      : {};
+    // A SELECT rather than SHOW: Beekeeper Studio's read-only mode allows it.
+    const results = await run(
+      "SELECT current_setting('server_version_num') AS version, current_setting('standard_conforming_strings') AS scs"
+    );
+    const row = results[0]?.rows[0] ?? {};
+    const version = Number(row["version"]);
+    if (!Number.isFinite(version)) throw new Error("Unexpected server version response.");
+    return {
+      version,
+      versionLabel: `${Math.floor(version / 10000)}.${version % 100}`,
+      standardConformingStrings: row["scs"] !== "off",
+    };
   },
 
   inspect: inspectStatement,

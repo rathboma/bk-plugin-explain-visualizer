@@ -50,14 +50,24 @@ There are several ways in:
 **Explain** asks the database for its plan without running the statement. It is
 always safe, so it runs automatically when the tab opens from the editor.
 
-**Explain Analyze** runs the statement and measures every step. For statements
-that change data (`INSERT`, `UPDATE`, `DELETE`, `MERGE`, data-modifying CTEs...)
-the plugin asks first, then sends `EXPLAIN ANALYZE ...; ROLLBACK;` as a single
-request. Both statements share one implicit transaction, so the changes are
-rolled back, and if the statement fails the transaction is aborted on its own
-without leaving the pooled connection in a bad state. Effects outside the
-transaction, such as sequence values, are not undone. On read-only connections
-data-changing statements can only be explained, not analyzed.
+**Explain Analyze** runs the statement and measures every step. The plugin
+sends `EXPLAIN ANALYZE ...; ROLLBACK;` as a single request, so both statements
+share one implicit transaction and anything the statement changed is rolled
+back. That includes plain `SELECT`s, which can call functions that write. If the
+statement fails, the transaction is aborted on its own and the pooled
+connection is left clean. Effects outside the transaction, such as sequence
+values, are not undone.
+
+Statements that change data (`INSERT`, `UPDATE`, `DELETE`, `MERGE`,
+data-modifying CTEs...) are only analyzed after a confirmation. The plugin reads
+the statement with a lexer that follows PostgreSQL's own rules for strings,
+comments and dollar quotes, and refuses input that contains more than one
+statement.
+
+On read-only connections Beekeeper Studio does not allow the `ROLLBACK`, so
+statements that change data can only be explained, and Explain Analyze never
+runs automatically. A `SELECT` that calls a function which writes is not
+detected there, the same as when running it in a query tab.
 
 If the editor text already starts with `EXPLAIN ANALYZE` (or `EXPLAIN (...)`),
 the plugin uses those options.
