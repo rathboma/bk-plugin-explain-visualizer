@@ -1,0 +1,20 @@
+{
+  "name": "sqlite-3.27-index-search",
+  "sqliteVersion": "3.27.2",
+  "modifies": false,
+  "query": "SELECT * FROM orders WHERE customer_id = 42",
+  "columns": [
+    "id",
+    "parent",
+    "notused",
+    "detail"
+  ],
+  "rows": [
+    [
+      3,
+      0,
+      0,
+      "SEARCH TABLE orders USING INDEX orders_customer_id_idx (customer_id=?)"
+    ]
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "name": "mysql-8.4-join-limit",
+  "flavor": "mysql",
+  "serverVersion": "8.4.11",
+  "version": 80411,
+  "modifies": false,
+  "query": "SELECT o.id, o.total, c.email\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nORDER BY o.ordered_at DESC\nLIMIT 20",
+  "outputs": {
+    "tree": "-> Limit: 20 row(s)  (cost=49952 rows=20)\n    -> Nested loop inner join  (cost=49952 rows=20)\n        -> Index scan on o using orders_ordered_at_idx (reverse)  (cost=0.0154 rows=20)\n        -> Single-row index lookup on c using PRIMARY (id=o.customer_id)  (cost=0.25 rows=1)\n",
+    "treeAnalyze": "-> Limit: 20 row(s)  (cost=49952 rows=20) (actual time=0.0788..0.131 rows=20 loops=1)\n    -> Nested loop inner join  (cost=49952 rows=20) (actual time=0.0778..0.129 rows=20 loops=1)\n        -> Index scan on o using orders_ordered_at_idx (reverse)  (cost=0.0154 rows=20) (actual time=0.0696..0.0723 rows=20 loops=1)\n        -> Single-row index lookup on c using PRIMARY (id=o.customer_id)  (cost=0.25 rows=1) (actual time=0.00253..0.00256 rows=1 loops=20)\n",
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"90062.25\"\n    },\n    \"ordering_operation\": {\n      \"using_filesort\": false,\n      \"nested_loop\": [\n        {\n          \"table\": {\n            \"table_name\": \"o\",\n            \"access_type\": \"index\",\n            \"possible_keys\": [\n              \"orders_customer_id_idx\"\n            ],\n            \"key\": \"orders_ordered_at_idx\",\n            \"used_key_parts\": [\n              \"ordered_at\"\n            ],\n            \"key_length\": \"5\",\n            \"rows_examined_per_scan\": 20,\n            \"rows_produced_per_join\": 199800,\n            \"filtered\": \"100.00\",\n            \"backward_index_scan\": true,\n            \"cost_info\": {\n              \"read_cost\": \"152.25\",\n              \"eval_cost\": \"19980.00\",\n              \"prefix_cost\": \"20132.25\",\n              \"data_read_per_join\": \"19M\"\n            },\n            \"used_columns\": [\n              \"id\",\n              \"customer_id\",\n              \"ordered_at\",\n              \"total\"\n            ]\n          }\n        },\n        {\n          \"table\": {\n            \"table_name\": \"c\",\n            \"access_type\": \"eq_ref\",\n            \"possible_keys\": [\n              \"PRIMARY\"\n            ],\n            \"key\": \"PRIMARY\",\n            \"used_key_parts\": [\n              \"id\"\n            ],\n            \"key_length\": \"4\",\n            \"ref\": [\n              \"shop.o.customer_id\"\n            ],\n            \"rows_examined_per_scan\": 1,\n            \"rows_produced_per_join\": 199800,\n            \"filtered\": \"100.00\",\n            \"cost_info\": {\n              \"read_cost\": \"49950.00\",\n              \"eval_cost\": \"19980.00\",\n              \"prefix_cost\": \"90062.25\",\n              \"data_read_per_join\": \"80M\"\n            },\n            \"used_columns\": [\n              \"id\",\n              \"email\"\n            ]\n          }\n        }\n      ]\n    }\n  }\n}",
+    "jsonV2": "{\n  \"limit\": 20,\n  \"query\": \"/* select#1 */ select `o`.`id` AS `id`,`o`.`total` AS `total`,`c`.`email` AS `email` from `shop`.`orders` `o` join `shop`.`customers` `c` where (`c`.`id` = `o`.`customer_id`) order by `o`.`ordered_at` desc limit 20\",\n  \"inputs\": [\n    {\n      \"inputs\": [\n        {\n          \"alias\": \"o\",\n          \"reverse\": true,\n          \"covering\": false,\n          \"operation\": \"Index scan on o using orders_ordered_at_idx (reverse)\",\n          \"index_name\": \"orders_ordered_at_idx\",\n          \"table_name\": \"orders\",\n          \"access_type\": \"index\",\n          \"schema_name\": \"shop\",\n          \"used_columns\": [\n            \"id\",\n            \"customer_id\",\n            \"ordered_at\",\n            \"total\"\n          ],\n          \"estimated_rows\": 20.0,\n          \"index_access_type\": \"index_scan\",\n          \"estimated_total_cost\": 0.01544044044044044\n        },\n        {\n          \"alias\": \"c\",\n          \"covering\": false,\n          \"operation\": \"Single-row index lookup on c using PRIMARY (id=o.customer_id)\",\n          \"index_name\": \"PRIMARY\",\n          \"table_name\": \"customers\",\n          \"access_type\": \"index\",\n          \"schema_name\": \"shop\",\n          \"used_columns\": [\n            \"id\",\n            \"email\"\n          ],\n          \"estimated_rows\": 1.0,\n          \"lookup_condition\": \"id=o.customer_id\",\n          \"index_access_type\": \"index_lookup\",\n          \"estimated_total_cost\": 0.2500005005005005\n        }\n      ],\n      \"join_type\": \"inner join\",\n      \"operation\": \"Nested loop inner join\",\n      \"access_type\": \"join\",\n      \"estimated_rows\": 20.0,\n      \"join_algorithm\": \"nested_loop\",\n      \"estimated_total_cost\": 49952.01544044044\n    }\n  ],\n  \"operation\": \"Limit: 20 row(s)\",\n  \"query_type\": \"select\",\n  \"access_type\": \"limit\",\n  \"limit_offset\": 0,\n  \"estimated_rows\": 20.0,\n  \"estimated_total_cost\": 49952.01544044044\n}",
+    "jsonV2Analyze": "{\n  \"limit\": 20,\n  \"query\": \"/* select#1 */ select `o`.`id` AS `id`,`o`.`total` AS `total`,`c`.`email` AS `email` from `shop`.`orders` `o` join `shop`.`customers` `c` where (`c`.`id` = `o`.`customer_id`) order by `o`.`ordered_at` desc limit 20\",\n  \"inputs\": [\n    {\n      \"inputs\": [\n        {\n          \"alias\": \"o\",\n          \"reverse\": true,\n          \"covering\": false,\n          \"operation\": \"Index scan on o using orders_ordered_at_idx (reverse)\",\n          \"index_name\": \"orders_ordered_at_idx\",\n          \"table_name\": \"orders\",\n          \"access_type\": \"index\",\n          \"actual_rows\": 20.0,\n          \"schema_name\": \"shop\",\n          \"actual_loops\": 1,\n          \"used_columns\": [\n            \"id\",\n            \"customer_id\",\n            \"ordered_at\",\n            \"total\"\n          ],\n          \"estimated_rows\": 20.0,\n          \"index_access_type\": \"index_scan\",\n          \"actual_last_row_ms\": 0.056381,\n          \"actual_first_row_ms\": 0.053835999999999995,\n          \"estimated_total_cost\": 0.01544044044044044\n        },\n        {\n          \"alias\": \"c\",\n          \"covering\": false,\n          \"operation\": \"Single-row index lookup on c using PRIMARY (id=o.customer_id)\",\n          \"index_name\": \"PRIMARY\",\n          \"table_name\": \"customers\",\n          \"access_type\": \"index\",\n          \"actual_rows\": 1.0,\n          \"schema_name\": \"shop\",\n          \"actual_loops\": 20,\n          \"used_columns\": [\n            \"id\",\n            \"email\"\n          ],\n          \"estimated_rows\": 1.0,\n          \"lookup_condition\": \"id=o.customer_id\",\n          \"index_access_type\": \"index_lookup\",\n          \"actual_last_row_ms\": 0.0014252499999999999,\n          \"actual_first_row_ms\": 0.0013965,\n          \"estimated_total_cost\": 0.2500005005005005\n        }\n      ],\n      \"join_type\": \"inner join\",\n      \"operation\": \"Nested loop inner join\",\n      \"access_type\": \"join\",\n      \"actual_rows\": 20.0,\n      \"actual_loops\": 1,\n      \"estimated_rows\": 20.0,\n      \"join_algorithm\": \"nested_loop\",\n      \"actual_last_row_ms\": 0.088921,\n      \"actual_first_row_ms\": 0.059428,\n      \"estimated_total_cost\": 49952.01544044044\n    }\n  ],\n  \"operation\": \"Limit: 20 row(s)\",\n  \"query_type\": \"select\",\n  \"access_type\": \"limit\",\n  \"actual_rows\": 20.0,\n  \"actual_loops\": 1,\n  \"limit_offset\": 0,\n  \"estimated_rows\": 20.0,\n  \"actual_last_row_ms\": 0.090669,\n  \"actual_first_row_ms\": 0.05998,\n  \"estimated_total_cost\": 49952.01544044044\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "SIMPLE",
+          "o",
+          null,
+          "index",
+          "orders_customer_id_idx",
+          "orders_ordered_at_idx",
+          "5",
+          null,
+          20,
+          100,
+          "Backward index scan"
+        ],
+        [
+          1,
+          "SIMPLE",
+          "c",
+          null,
+          "eq_ref",
+          "PRIMARY",
+          "PRIMARY",
+          "4",
+          "shop.o.customer_id",
+          1,
+          100,
+          null
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "name": "mysql-8.0.17-distinct-temp",
+  "flavor": "mysql",
+  "serverVersion": "8.0.17",
+  "version": 80017,
+  "modifies": false,
+  "query": "SELECT DISTINCT o.status, c.country FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.total > 1000",
+  "outputs": {
+    "tree": "-> Table scan on <temporary>\n    -> Temporary table with deduplication\n        -> Nested loop inner join\n            -> Filter: (o.total > 1000.00)\n                -> Table scan on o\n            -> Single-row index lookup on c using PRIMARY (id=o.customer_id)\n",
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"43439.92\"\n    },\n    \"duplicates_removal\": {\n      \"using_temporary_table\": true,\n      \"using_filesort\": false,\n      \"nested_loop\": [\n        {\n          \"table\": {\n            \"table_name\": \"o\",\n            \"access_type\": \"ALL\",\n            \"possible_keys\": [\n              \"orders_customer_id_idx\"\n            ],\n            \"rows_examined_per_scan\": 199800,\n            \"rows_produced_per_join\": 66593,\n            \"filtered\": \"33.33\",\n            \"cost_info\": {\n              \"read_cost\": \"13472.92\",\n              \"eval_cost\": \"6659.33\",\n              \"prefix_cost\": \"20132.25\",\n              \"data_read_per_join\": \"6M\"\n            },\n            \"used_columns\": [\n              \"id\",\n              \"customer_id\",\n              \"status\",\n              \"total\"\n            ],\n            \"attached_condition\": \"(`shop`.`o`.`total` > 1000.00)\"\n          }\n        },\n        {\n          \"table\": {\n            \"table_name\": \"c\",\n            \"access_type\": \"eq_ref\",\n            \"possible_keys\": [\n              \"PRIMARY\"\n            ],\n            \"key\": \"PRIMARY\",\n            \"used_key_parts\": [\n              \"id\"\n            ],\n            \"key_length\": \"4\",\n            \"ref\": [\n              \"shop.o.customer_id\"\n            ],\n            \"rows_examined_per_scan\": 1,\n            \"rows_produced_per_join\": 66593,\n            \"filtered\": \"100.00\",\n            \"cost_info\": {\n              \"read_cost\": \"16648.33\",\n              \"eval_cost\": \"6659.33\",\n              \"prefix_cost\": \"43439.92\",\n              \"data_read_per_join\": \"26M\"\n            },\n            \"used_columns\": [\n              \"id\",\n              \"country\"\n            ]\n          }\n        }\n      ]\n    }\n  }\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "SIMPLE",
+          "o",
+          null,
+          "ALL",
+          "orders_customer_id_idx",
+          null,
+          null,
+          null,
+          199800,
+          33.33,
+          "Using where; Using temporary"
+        ],
+        [
+          1,
+          "SIMPLE",
+          "c",
+          null,
+          "eq_ref",
+          "PRIMARY",
+          "PRIMARY",
+          "4",
+          "shop.o.customer_id",
+          1,
+          100,
+          null
+        ]
+      ]
+    }
+  }
+}

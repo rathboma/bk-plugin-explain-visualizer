@@ -17,6 +17,14 @@ export interface NodeStats {
   outputRows?: number;
 }
 
+/** Which metrics the plan has, so views can leave out empty columns. */
+export interface PlanMetrics {
+  time: boolean;
+  cost: boolean;
+  estimatedRows: boolean;
+  actualRows: boolean;
+}
+
 export interface PlanStats {
   totalTime?: number;
   totalCost?: number;
@@ -24,6 +32,17 @@ export interface PlanStats {
   nodes: Map<number, NodeStats>;
   /** Nodes doing the most work, by self time (or self cost for estimates). */
   hottest: PlanNode[];
+  metrics: PlanMetrics;
+}
+
+export function planMetrics(plan: Plan): PlanMetrics {
+  const has = (key: keyof PlanNode) => plan.nodes.some((n) => n[key] !== undefined);
+  return {
+    time: plan.analyzed && has("exclusiveTime"),
+    cost: has("exclusiveCost"),
+    estimatedRows: has("estimatedRows"),
+    actualRows: plan.analyzed && has("actualRows"),
+  };
 }
 
 export function misestimate(node: PlanNode): Misestimate | undefined {
@@ -63,19 +82,21 @@ export function planStats(plan: Plan): PlanStats {
     .sort((a, b) => weight(b) - weight(a))
     .slice(0, 5);
 
-  return { totalTime, totalCost, maxOutputRows, nodes, hottest };
+  return { totalTime, totalCost, maxOutputRows, nodes, hottest, metrics: planMetrics(plan) };
 }
 
-/** Ancestors that legitimately stop their inputs early, making over-estimates expected. */
-function stopsEarly(node: PlanNode, parents: Map<number, PlanNode>): boolean {
+/**
+ * Whether the node, or an ancestor, may legitimately stop reading its input
+ * early, which makes row over-estimates expected: below a Limit, plus
+ * whatever the engine knows (semi joins, subqueries...).
+ */
+function stopsEarly(node: PlanNode, parents: Map<number, PlanNode>, options: FinishOptions): boolean {
   let current: PlanNode | undefined = node;
   while (current) {
-    if (current.role === "SubPlan" || current.role === "InitPlan") return true;
     const parent = parents.get(current.id);
+    if (options.stopsEarly?.(current, parent)) return true;
     if (!parent) return false;
-    if (parent.kind === "limit" || /Semi|Anti/.test(parent.operation) || /^Merge\b.*\bJoin$/.test(parent.operation)) {
-      return true;
-    }
+    if (parent.kind === "limit") return true;
     current = parent;
   }
   return false;
@@ -84,6 +105,12 @@ function stopsEarly(node: PlanNode, parents: Map<number, PlanNode>): boolean {
 export interface FinishOptions {
   /** Engine-specific advice appended to row estimate insights. */
   statisticsAdvice?: string;
+  /**
+   * Whether `node` may stop pulling rows before its input is exhausted
+   * because of what `parent` is (a semi join) or what the node is (a
+   * subquery evaluated only until it finds a row). Limits are handled already.
+   */
+  stopsEarly?(node: PlanNode, parent: PlanNode | undefined): boolean;
 }
 
 const SEVERITY_ORDER: Record<InsightSeverity, number> = { critical: 0, warning: 1, info: 2 };
@@ -100,7 +127,7 @@ export function finishPlan(plan: Plan, options: FinishOptions = {}): Plan {
     if (!m || m.factor < 10) continue;
     const biggest = Math.max(node.actualRows ?? 0, node.estimatedRows ?? 0) * Math.max(1, node.loops ?? 1);
     if (biggest < 100) continue;
-    if (m.direction === "over" && stopsEarly(node, parents)) continue;
+    if (m.direction === "over" && stopsEarly(node, parents, options)) continue;
 
     const factor = formatNumber(Math.round(m.factor));
     const insight: Insight = {

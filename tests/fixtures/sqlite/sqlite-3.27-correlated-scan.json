@@ -1,0 +1,32 @@
+{
+  "name": "sqlite-3.27-correlated-scan",
+  "sqliteVersion": "3.27.2",
+  "modifies": false,
+  "query": "SELECT p.id, p.name,\n  (SELECT max(oi.quantity) FROM order_items oi WHERE oi.unit_price = p.price) AS max_qty\nFROM products p\nWHERE p.category = 'toys'",
+  "columns": [
+    "id",
+    "parent",
+    "notused",
+    "detail"
+  ],
+  "rows": [
+    [
+      2,
+      0,
+      0,
+      "SCAN TABLE products AS p"
+    ],
+    [
+      8,
+      0,
+      0,
+      "CORRELATED SCALAR SUBQUERY 1"
+    ],
+    [
+      13,
+      8,
+      0,
+      "SEARCH TABLE order_items AS oi"
+    ]
+  ]
+}

@@ -110,7 +110,7 @@ const rawNode = computed(() => (selectedNode.value?.raw ? JSON.stringify(selecte
         <InsightList :insights="selectedNode.insights" />
       </section>
 
-      <section>
+      <section v-if="metrics.length">
         <dl class="metrics">
           <div v-for="m in metrics" :key="m.label" class="metric" :class="{ warn: m.warn }">
             <dt>{{ m.label }}</dt>

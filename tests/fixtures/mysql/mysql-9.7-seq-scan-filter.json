@@ -1,0 +1,47 @@
+{
+  "name": "mysql-9.7-seq-scan-filter",
+  "flavor": "mysql",
+  "serverVersion": "9.7.2",
+  "version": 90702,
+  "modifies": false,
+  "query": "SELECT * FROM customers WHERE email LIKE '%99@example.com'",
+  "outputs": {
+    "tree": "-> Filter: (customers.email like '%99@example.com')  (cost=1968 rows=2159)\n    -> Table scan on customers  (cost=1968 rows=19433)\n",
+    "treeAnalyze": "-> Filter: (customers.email like '%99@example.com')  (cost=1968 rows=2159) (actual time=0.135..6.62 rows=200 loops=1)\n    -> Table scan on customers  (cost=1968 rows=19433) (actual time=0.107..3.52 rows=20000 loops=1)\n",
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"1967.55\"\n    },\n    \"table\": {\n      \"table_name\": \"customers\",\n      \"access_type\": \"ALL\",\n      \"rows_examined_per_scan\": 19433,\n      \"rows_produced_per_join\": 2159,\n      \"filtered\": \"11.11\",\n      \"cost_info\": {\n        \"read_cost\": \"1751.65\",\n        \"eval_cost\": \"215.90\",\n        \"prefix_cost\": \"1967.55\",\n        \"data_read_per_join\": \"893K\"\n      },\n      \"used_columns\": [\n        \"id\",\n        \"email\",\n        \"country\",\n        \"created_at\"\n      ],\n      \"attached_condition\": \"(`shop`.`customers`.`email` like '%99@example.com')\"\n    }\n  }\n}",
+    "jsonV2": "{\n  \"query\": \"/* select#1 */ select `shop`.`customers`.`id` AS `id`,`shop`.`customers`.`email` AS `email`,`shop`.`customers`.`country` AS `country`,`shop`.`customers`.`created_at` AS `created_at` from `shop`.`customers` where (`shop`.`customers`.`email` like '%99@example.com')\",\n  \"query_plan\": {\n    \"inputs\": [\n      {\n        \"operation\": \"Table scan on customers\",\n        \"table_name\": \"customers\",\n        \"access_type\": \"table\",\n        \"schema_name\": \"shop\",\n        \"used_columns\": [\n          \"id\",\n          \"email\",\n          \"country\",\n          \"created_at\"\n        ],\n        \"estimated_rows\": 19433.0,\n        \"estimated_total_cost\": 1967.55\n      }\n    ],\n    \"condition\": \"(customers.email like '%99@example.com')\",\n    \"operation\": \"Filter: (customers.email like '%99@example.com')\",\n    \"access_type\": \"filter\",\n    \"estimated_rows\": 2159.006360694766,\n    \"filter_columns\": [\n      \"shop.customers.email\"\n    ],\n    \"estimated_total_cost\": 1967.55\n  },\n  \"query_type\": \"select\",\n  \"json_schema_version\": \"2.0\"\n}",
+    "jsonV2Analyze": "{\n  \"query\": \"/* select#1 */ select `shop`.`customers`.`id` AS `id`,`shop`.`customers`.`email` AS `email`,`shop`.`customers`.`country` AS `country`,`shop`.`customers`.`created_at` AS `created_at` from `shop`.`customers` where (`shop`.`customers`.`email` like '%99@example.com')\",\n  \"query_plan\": {\n    \"inputs\": [\n      {\n        \"operation\": \"Table scan on customers\",\n        \"table_name\": \"customers\",\n        \"access_type\": \"table\",\n        \"actual_rows\": 20000.0,\n        \"schema_name\": \"shop\",\n        \"actual_loops\": 1,\n        \"used_columns\": [\n          \"id\",\n          \"email\",\n          \"country\",\n          \"created_at\"\n        ],\n        \"estimated_rows\": 19433.0,\n        \"actual_last_row_ms\": 3.27174,\n        \"actual_first_row_ms\": 0.072352,\n        \"estimated_total_cost\": 1967.55\n      }\n    ],\n    \"condition\": \"(customers.email like '%99@example.com')\",\n    \"operation\": \"Filter: (customers.email like '%99@example.com')\",\n    \"access_type\": \"filter\",\n    \"actual_rows\": 200.0,\n    \"actual_loops\": 1,\n    \"estimated_rows\": 2159.006360694766,\n    \"filter_columns\": [\n      \"shop.customers.email\"\n    ],\n    \"actual_last_row_ms\": 6.322089,\n    \"actual_first_row_ms\": 0.096399,\n    \"estimated_total_cost\": 1967.55\n  },\n  \"query_type\": \"select\",\n  \"json_schema_version\": \"2.0\"\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "SIMPLE",
+          "customers",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          19433,
+          11.11,
+          "Using where"
+        ]
+      ]
+    }
+  }
+}

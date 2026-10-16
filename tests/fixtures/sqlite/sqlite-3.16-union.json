@@ -1,0 +1,32 @@
+{
+  "name": "sqlite-3.16-union",
+  "sqliteVersion": "3.16.2",
+  "modifies": false,
+  "query": "SELECT customer_id FROM orders WHERE status = 'cancelled'\nUNION\nSELECT id FROM customers WHERE country = 'JP'",
+  "columns": [
+    "selectid",
+    "order",
+    "from",
+    "detail"
+  ],
+  "rows": [
+    [
+      1,
+      0,
+      0,
+      "SCAN TABLE orders"
+    ],
+    [
+      2,
+      0,
+      0,
+      "SEARCH TABLE customers USING COVERING INDEX customers_country_idx (country=?)"
+    ],
+    [
+      0,
+      0,
+      0,
+      "COMPOUND SUBQUERIES 1 AND 2 USING TEMP B-TREE (UNION)"
+    ]
+  ]
+}

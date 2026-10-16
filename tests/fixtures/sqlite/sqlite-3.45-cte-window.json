@@ -1,0 +1,74 @@
+{
+  "name": "sqlite-3.45-cte-window",
+  "sqliteVersion": "3.45.1",
+  "modifies": false,
+  "query": "WITH ranked AS (\n  SELECT id, status, total, rank() OVER (PARTITION BY status ORDER BY total DESC) AS rnk\n  FROM orders\n  WHERE customer_id < 100\n)\nSELECT * FROM ranked WHERE rnk <= 3\nUNION ALL\nSELECT id, status, total, 0 FROM orders WHERE customer_id > 19950",
+  "columns": [
+    "id",
+    "parent",
+    "notused",
+    "detail"
+  ],
+  "rows": [
+    [
+      1,
+      0,
+      0,
+      "COMPOUND QUERY"
+    ],
+    [
+      2,
+      1,
+      0,
+      "LEFT-MOST SUBQUERY"
+    ],
+    [
+      4,
+      2,
+      0,
+      "CO-ROUTINE ranked"
+    ],
+    [
+      7,
+      4,
+      0,
+      "CO-ROUTINE (subquery-4)"
+    ],
+    [
+      11,
+      7,
+      0,
+      "SEARCH orders USING INDEX orders_customer_id_idx (customer_id<?)"
+    ],
+    [
+      26,
+      7,
+      0,
+      "USE TEMP B-TREE FOR ORDER BY"
+    ],
+    [
+      44,
+      4,
+      0,
+      "SCAN (subquery-4)"
+    ],
+    [
+      118,
+      2,
+      0,
+      "SCAN ranked"
+    ],
+    [
+      130,
+      1,
+      0,
+      "UNION ALL"
+    ],
+    [
+      133,
+      130,
+      0,
+      "SEARCH orders USING INDEX orders_customer_id_idx (customer_id>?)"
+    ]
+  ]
+}

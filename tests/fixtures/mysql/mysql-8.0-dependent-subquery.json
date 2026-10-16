@@ -1,0 +1,59 @@
+{
+  "name": "mysql-8.0-dependent-subquery",
+  "flavor": "mysql",
+  "serverVersion": "8.0.46",
+  "version": 80046,
+  "modifies": false,
+  "query": "SELECT p.id, p.name,\n  (SELECT max(oi.quantity) FROM order_items oi WHERE oi.unit_price = p.price) AS max_qty\nFROM products p\nWHERE p.category = 'toys'",
+  "outputs": {
+    "tree": "-> Filter: (p.category = 'toys')  (cost=202 rows=200)\n    -> Table scan on p  (cost=202 rows=2000)\n-> Select #2 (subquery in projection; dependent)\n    -> Aggregate: max(oi.quantity)  (cost=12366 rows=1)\n        -> Filter: (oi.unit_price = p.price)  (cost=6379 rows=59866)\n            -> Table scan on oi  (cost=6379 rows=598656)\n",
+    "treeAnalyze": "-> Filter: (p.category = 'toys')  (cost=202 rows=200) (actual time=0.0649..4.05 rows=400 loops=1)\n    -> Table scan on p  (cost=202 rows=2000) (actual time=0.0617..1.56 rows=2000 loops=1)\n-> Select #2 (subquery in projection; dependent)\n    -> Aggregate: max(oi.quantity)  (cost=12366 rows=1) (actual time=147..147 rows=1 loops=400)\n        -> Filter: (oi.unit_price = p.price)  (cost=6379 rows=59866) (actual time=0.552..147 rows=1200 loops=400)\n            -> Table scan on oi  (cost=6379 rows=598656) (actual time=0.507..89.7 rows=600000 loops=400)\n",
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"202.00\"\n    },\n    \"table\": {\n      \"table_name\": \"p\",\n      \"access_type\": \"ALL\",\n      \"rows_examined_per_scan\": 2000,\n      \"rows_produced_per_join\": 200,\n      \"filtered\": \"10.00\",\n      \"cost_info\": {\n        \"read_cost\": \"182.00\",\n        \"eval_cost\": \"20.00\",\n        \"prefix_cost\": \"202.00\",\n        \"data_read_per_join\": \"96K\"\n      },\n      \"used_columns\": [\n        \"id\",\n        \"name\",\n        \"category\",\n        \"price\"\n      ],\n      \"attached_condition\": \"(`shop`.`p`.`category` = 'toys')\"\n    },\n    \"select_list_subqueries\": [\n      {\n        \"dependent\": true,\n        \"cacheable\": false,\n        \"query_block\": {\n          \"select_id\": 2,\n          \"cost_info\": {\n            \"query_cost\": \"60258.35\"\n          },\n          \"table\": {\n            \"table_name\": \"oi\",\n            \"access_type\": \"ALL\",\n            \"rows_examined_per_scan\": 598656,\n            \"rows_produced_per_join\": 59865,\n            \"filtered\": \"10.00\",\n            \"cost_info\": {\n              \"read_cost\": \"392.75\",\n              \"eval_cost\": \"5986.56\",\n              \"prefix_cost\": \"60258.35\",\n              \"data_read_per_join\": \"1M\"\n            },\n            \"used_columns\": [\n              \"quantity\",\n              \"unit_price\"\n            ],\n            \"attached_condition\": \"(`shop`.`oi`.`unit_price` = `shop`.`p`.`price`)\"\n          }\n        }\n      }\n    ]\n  }\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "PRIMARY",
+          "p",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          2000,
+          10,
+          "Using where"
+        ],
+        [
+          2,
+          "DEPENDENT SUBQUERY",
+          "oi",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          598656,
+          10,
+          "Using where"
+        ]
+      ]
+    }
+  }
+}
