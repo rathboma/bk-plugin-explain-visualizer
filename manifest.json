@@ -27,6 +27,12 @@
         "placement": "editor.query.context"
       },
       {
+        "command": "explain-query",
+        "name": "Explain",
+        "view": "explain-visualizer",
+        "placement": "editor.query.toolbar"
+      },
+      {
         "command": "new-explain",
         "name": "Explain Visualizer",
         "view": "explain-visualizer",
@@ -43,6 +49,13 @@
         "name": "Visualize Explain Plan",
         "view": "explain-visualizer",
         "placement": "results.columnHeader.context"
+      },
+      {
+        "command": "visualize-result",
+        "name": "Explain Visualizer",
+        "view": "explain-visualizer",
+        "placement": "results.statusbar",
+        "enabledWhen": "explainResult"
       }
     ]
   }

@@ -196,6 +196,17 @@ describe("explainer", () => {
     expect(queries).toEqual([]);
   });
 
+  it("visualizes a text plan from the Visualize menu", async () => {
+    const { host } = fakeHost();
+    const ex = createExplainer(host);
+    const rows = fixture.text.split("\n").map((line) => [line]);
+    await ex.init(async () =>
+      launchInput({ command: "visualize-result", params: { source: "result", activeRange: { value: rows } } } as never)
+    );
+    expect(ex.result.value?.rawFormat).toBe("text");
+    expect(ex.state.pasteText).toBe(fixture.text);
+  });
+
   it("visualizes a text plan from a results column", async () => {
     const { host } = fakeHost();
     const ex = createExplainer(host);
@@ -232,6 +243,19 @@ describe("launchInput", () => {
       params: { target: { value: "Seq Scan on t" }, activeRange: { value: [["Limit"], ["  ->  Seq Scan on t"]] } },
     } as never);
     expect(value).toEqual({ kind: "plan", value: [["Limit"], ["  ->  Seq Scan on t"]] });
+  });
+
+  it("takes the whole result from the Visualize menu", () => {
+    const ctx = (value: unknown[][]) =>
+      ({ command: "visualize-result", params: { source: "result", activeRange: { value } } }) as never;
+    // A JSON plan is a single cell
+    expect(launchInput(ctx([['[{"Plan": {}}]']]))).toEqual({ kind: "plan", value: '[{"Plan": {}}]' });
+    // A text plan is one row per line
+    expect(launchInput(ctx([["Limit"], ["  ->  Seq Scan on t"]]))).toEqual({
+      kind: "plan",
+      value: [["Limit"], ["  ->  Seq Scan on t"]],
+    });
+    expect(launchInput(ctx([]))).toEqual({ kind: "empty" });
   });
 
   it("opens empty from the new tab menu", () => {

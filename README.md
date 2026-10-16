@@ -35,13 +35,17 @@ built around a database-neutral plan model so each one only needs an adapter
 
 There are several ways in:
 
-- **Query editor:** right-click a query and choose **Visualize Explain Plan**.
-  The selected text is used, or the statement under the cursor.
+- **Query editor:** click **Explain** in the editor toolbar, or right-click a
+  query and choose **Visualize Explain Plan**. The selected text is used, or
+  the statement under the cursor.
 - **New tab menu:** open **Explain Visualizer**, write a statement and choose
   **Explain** or **Explain Analyze**.
-- **Results grid:** after running `EXPLAIN (FORMAT JSON) ...` yourself,
-  right-click the plan cell and choose **Visualize Explain Plan**. For text
-  output (one row per line), right-click the `QUERY PLAN` column header.
+- **Visualize menu:** after running `EXPLAIN ...` yourself, choose
+  **Visualize › Explain Visualizer** in the results status bar. The item is
+  disabled until the result is a query plan.
+- **Results grid:** right-click the plan cell and choose **Visualize Explain
+  Plan**. For text output (one row per line), right-click the `QUERY PLAN`
+  column header.
 - **Paste Plan:** paste JSON or text EXPLAIN output, for example from psql or a
   colleague.
 
@@ -120,8 +124,9 @@ and restart the app:
 disabled = false
 ```
 
-Then connect to PostgreSQL: **Visualize Explain Plan** appears in the query
-editor's context menu and **Explain Visualizer** in the new tab menu.
+Then connect to PostgreSQL: **Explain** appears in the query editor toolbar,
+**Visualize Explain Plan** in the query editor's context menu and **Explain
+Visualizer** in the new tab menu and the results **Visualize** menu.
 
 ### Harness
 

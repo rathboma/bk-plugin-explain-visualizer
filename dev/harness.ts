@@ -52,6 +52,18 @@ const SCENARIOS: Record<string, { label: string; command: string; params?: unkno
       target: { type: "column", column: "QUERY PLAN", value: diskSort.text.split("\n").map((line) => [line]) },
     },
   },
+  "visualize-result": {
+    label: "Visualize menu (text plan)",
+    command: "visualize-result",
+    params: {
+      source: "result",
+      activeRange: {
+        rows: diskSort.text.split("\n").map((_line, i) => i + 1),
+        columns: ["QUERY PLAN"],
+        value: diskSort.text.split("\n").map((line) => [line]),
+      },
+    },
+  },
 };
 
 const THEMES = {

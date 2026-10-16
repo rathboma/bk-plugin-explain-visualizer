@@ -42,6 +42,16 @@ export function launchInput(context: PluginViewContext | undefined): LaunchInput
       return target?.value?.length ? { kind: "plan", value: target.value } : { kind: "empty" };
     }
 
+    // Visualize menu in the results status bar: the whole result, or the
+    // selected cells. A JSON plan is one cell, a text plan one row per line.
+    case "visualize-result": {
+      const range = params?.activeRange as { value?: unknown[][] } | undefined;
+      const rows = range?.value ?? [];
+      if (rows.length === 0) return { kind: "empty" };
+      if (rows.length === 1 && rows[0]?.length === 1) return { kind: "plan", value: rows[0][0] };
+      return { kind: "plan", value: rows };
+    }
+
     default:
       return { kind: "empty" };
   }
