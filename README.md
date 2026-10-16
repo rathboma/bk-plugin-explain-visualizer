@@ -316,9 +316,10 @@ Notes for SQL Server, which is planned:
 
 ## Releasing
 
-1. Update `version` in both `manifest.json` and `package.json`.
-2. Push a matching tag, e.g. `git tag v0.1.0 && git push origin v0.1.0`.
-3. The release workflow builds, tests and creates a draft GitHub release with
+1. Run `bin/make-release.sh`. It suggests the next version from the existing
+   tags, sets `version` in `manifest.json` and `package.json`, commits, and
+   pushes a matching tag such as `v0.1.0`.
+2. The release workflow builds, tests and creates a draft GitHub release with
    `manifest.json` and `explain-visualizer-<version>.zip`. Publish the draft.
 
 `yarn build && yarn package` creates the same archive locally.
