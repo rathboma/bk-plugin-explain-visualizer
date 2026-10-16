@@ -1,0 +1,75 @@
+{
+  "name": "mysql-8.4-semijoin",
+  "flavor": "mysql",
+  "serverVersion": "8.4.11",
+  "version": 80411,
+  "modifies": false,
+  "query": "SELECT * FROM customers WHERE id IN (SELECT customer_id FROM orders WHERE total > 2400)",
+  "outputs": {
+    "tree": "-> Nested loop inner join  (cost=133e+6 rows=1.33e+9)\n    -> Table scan on customers  (cost=2019 rows=19951)\n    -> Single-row index lookup on <subquery2> using <auto_distinct_key> (customer_id=customers.id)  (cost=26792..26792 rows=1)\n        -> Materialize with deduplication  (cost=26792..26792 rows=66593)\n            -> Filter: (orders.total > 2400.00)  (cost=20132 rows=66593)\n                -> Table scan on orders  (cost=20132 rows=199800)\n",
+    "treeAnalyze": "-> Nested loop inner join  (cost=133e+6 rows=1.33e+9) (actual time=58.2..72.1 rows=6480 loops=1)\n    -> Table scan on customers  (cost=2019 rows=19951) (actual time=0.0553..4.17 rows=20000 loops=1)\n    -> Single-row index lookup on <subquery2> using <auto_distinct_key> (customer_id=customers.id)  (cost=26792..26792 rows=1) (actual time=0.00324..0.00327 rows=0.324 loops=20000)\n        -> Materialize with deduplication  (cost=26792..26792 rows=66593) (actual time=58.1..58.1 rows=6480 loops=1)\n            -> Filter: (orders.total > 2400.00)  (cost=20132 rows=66593) (actual time=0.11..46.3 rows=64800 loops=1)\n                -> Table scan on orders  (cost=20132 rows=199800) (actual time=0.106..27.4 rows=200000 loops=1)\n",
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"30807.03\"\n    },\n    \"nested_loop\": [\n      {\n        \"table\": {\n          \"table_name\": \"customers\",\n          \"access_type\": \"ALL\",\n          \"possible_keys\": [\n            \"PRIMARY\"\n          ],\n          \"rows_examined_per_scan\": 19951,\n          \"rows_produced_per_join\": 19951,\n          \"filtered\": \"100.00\",\n          \"cost_info\": {\n            \"read_cost\": \"24.25\",\n            \"eval_cost\": \"1995.10\",\n            \"prefix_cost\": \"2019.35\",\n            \"data_read_per_join\": \"8M\"\n          },\n          \"used_columns\": [\n            \"id\",\n            \"email\",\n            \"country\",\n            \"created_at\"\n          ]\n        }\n      },\n      {\n        \"table\": {\n          \"table_name\": \"<subquery2>\",\n          \"access_type\": \"eq_ref\",\n          \"key\": \"<auto_distinct_key>\",\n          \"key_length\": \"4\",\n          \"ref\": [\n            \"shop.customers.id\"\n          ],\n          \"rows_examined_per_scan\": 1,\n          \"materialized_from_subquery\": {\n            \"using_temporary_table\": true,\n            \"query_block\": {\n              \"table\": {\n                \"table_name\": \"orders\",\n                \"access_type\": \"ALL\",\n                \"possible_keys\": [\n                  \"orders_customer_id_idx\"\n                ],\n                \"rows_examined_per_scan\": 199800,\n                \"rows_produced_per_join\": 66593,\n                \"filtered\": \"33.33\",\n                \"cost_info\": {\n                  \"read_cost\": \"13472.92\",\n                  \"eval_cost\": \"6659.33\",\n                  \"prefix_cost\": \"20132.25\",\n                  \"data_read_per_join\": \"6M\"\n                },\n                \"used_columns\": [\n                  \"customer_id\",\n                  \"total\"\n                ],\n                \"attached_condition\": \"(`shop`.`orders`.`total` > 2400.00)\"\n              }\n            }\n          }\n        }\n      }\n    ]\n  }\n}",
+    "jsonV2": "{\n  \"query\": \"/* select#1 */ select `shop`.`customers`.`id` AS `id`,`shop`.`customers`.`email` AS `email`,`shop`.`customers`.`country` AS `country`,`shop`.`customers`.`created_at` AS `created_at` from `shop`.`customers` semi join (`shop`.`orders`) where ((`<subquery2>`.`customer_id` = `shop`.`customers`.`id`) and (`shop`.`orders`.`total` > 2400.00))\",\n  \"inputs\": [\n    {\n      \"operation\": \"Table scan on customers\",\n      \"table_name\": \"customers\",\n      \"access_type\": \"table\",\n      \"schema_name\": \"shop\",\n      \"used_columns\": [\n        \"id\",\n        \"email\",\n        \"country\",\n        \"created_at\"\n      ],\n      \"estimated_rows\": 19951.0,\n      \"estimated_total_cost\": 2019.3500000000001\n    },\n    {\n      \"inputs\": [\n        {\n          \"inputs\": [\n            {\n              \"inputs\": [\n                {\n                  \"operation\": \"Table scan on orders\",\n                  \"table_name\": \"orders\",\n                  \"access_type\": \"table\",\n                  \"schema_name\": \"shop\",\n                  \"used_columns\": [\n                    \"customer_id\",\n                    \"total\"\n                  ],\n                  \"estimated_rows\": 199800.0,\n                  \"estimated_total_cost\": 20132.248804381732\n                }\n              ],\n              \"condition\": \"(orders.total > 2400.00)\",\n              \"operation\": \"Filter: (orders.total > 2400.00)\",\n              \"access_type\": \"filter\",\n              \"estimated_rows\": 66593.33294034004,\n              \"estimated_total_cost\": 20132.248804381732\n            }\n          ],\n          \"operation\": \"Materialize with deduplication\",\n          \"access_type\": \"materialize\",\n          \"deduplication\": true,\n          \"estimated_rows\": 66593.33294034004,\n          \"estimated_total_cost\": 26791.582098415736,\n          \"estimated_first_row_cost\": 26791.582098415736\n        }\n      ],\n      \"covering\": false,\n      \"operation\": \"Single-row index lookup on <subquery2> using <auto_distinct_key> (customer_id=customers.id)\",\n      \"index_name\": \"<auto_distinct_key>\",\n      \"table_name\": \"<subquery2>\",\n      \"access_type\": \"index\",\n      \"used_columns\": [\n        \"customer_id\"\n      ],\n      \"estimated_rows\": 1.0,\n      \"lookup_condition\": \"customer_id=customers.id\",\n      \"index_access_type\": \"index_lookup\",\n      \"estimated_total_cost\": 26791.612059372073,\n      \"estimated_first_row_cost\": 26791.612059372073\n    }\n  ],\n  \"join_type\": \"inner join\",\n  \"operation\": \"Nested loop inner join\",\n  \"query_type\": \"select\",\n  \"access_type\": \"join\",\n  \"estimated_rows\": 1328603585.4927242,\n  \"join_algorithm\": \"nested_loop\",\n  \"estimated_total_cost\": 132864372.99927242\n}",
+    "jsonV2Analyze": "{\n  \"query\": \"/* select#1 */ select `shop`.`customers`.`id` AS `id`,`shop`.`customers`.`email` AS `email`,`shop`.`customers`.`country` AS `country`,`shop`.`customers`.`created_at` AS `created_at` from `shop`.`customers` semi join (`shop`.`orders`) where ((`<subquery2>`.`customer_id` = `shop`.`customers`.`id`) and (`shop`.`orders`.`total` > 2400.00))\",\n  \"inputs\": [\n    {\n      \"operation\": \"Table scan on customers\",\n      \"table_name\": \"customers\",\n      \"access_type\": \"table\",\n      \"actual_rows\": 20000.0,\n      \"schema_name\": \"shop\",\n      \"actual_loops\": 1,\n      \"used_columns\": [\n        \"id\",\n        \"email\",\n        \"country\",\n        \"created_at\"\n      ],\n      \"estimated_rows\": 19951.0,\n      \"actual_last_row_ms\": 4.2243960000000005,\n      \"actual_first_row_ms\": 0.053826000000000006,\n      \"estimated_total_cost\": 2019.3500000000001\n    },\n    {\n      \"inputs\": [\n        {\n          \"inputs\": [\n            {\n              \"inputs\": [\n                {\n                  \"operation\": \"Table scan on orders\",\n                  \"table_name\": \"orders\",\n                  \"access_type\": \"table\",\n                  \"actual_rows\": 200000.0,\n                  \"schema_name\": \"shop\",\n                  \"actual_loops\": 1,\n                  \"used_columns\": [\n                    \"customer_id\",\n                    \"total\"\n                  ],\n                  \"estimated_rows\": 199800.0,\n                  \"actual_last_row_ms\": 24.700497,\n                  \"actual_first_row_ms\": 0.09538300000000001,\n                  \"estimated_total_cost\": 20132.248804381732\n                }\n              ],\n              \"condition\": \"(orders.total > 2400.00)\",\n              \"operation\": \"Filter: (orders.total > 2400.00)\",\n              \"access_type\": \"filter\",\n              \"actual_rows\": 64800.0,\n              \"actual_loops\": 1,\n              \"estimated_rows\": 66593.33294034004,\n              \"actual_last_row_ms\": 42.355809,\n              \"actual_first_row_ms\": 0.098776,\n              \"estimated_total_cost\": 20132.248804381732\n            }\n          ],\n          \"operation\": \"Materialize with deduplication\",\n          \"access_type\": \"materialize\",\n          \"actual_rows\": 6480.0,\n          \"actual_loops\": 1,\n          \"deduplication\": true,\n          \"estimated_rows\": 66593.33294034004,\n          \"actual_last_row_ms\": 51.086290999999996,\n          \"actual_first_row_ms\": 51.086290999999996,\n          \"estimated_total_cost\": 26791.582098415736,\n          \"estimated_first_row_cost\": 26791.582098415736\n        }\n      ],\n      \"covering\": false,\n      \"operation\": \"Single-row index lookup on <subquery2> using <auto_distinct_key> (customer_id=customers.id)\",\n      \"index_name\": \"<auto_distinct_key>\",\n      \"table_name\": \"<subquery2>\",\n      \"access_type\": \"index\",\n      \"actual_rows\": 0.324,\n      \"actual_loops\": 20000,\n      \"used_columns\": [\n        \"customer_id\"\n      ],\n      \"estimated_rows\": 1.0,\n      \"lookup_condition\": \"customer_id=customers.id\",\n      \"index_access_type\": \"index_lookup\",\n      \"actual_last_row_ms\": 0.0028951262500000003,\n      \"actual_first_row_ms\": 0.0028647059499999996,\n      \"estimated_total_cost\": 26791.612059372073,\n      \"estimated_first_row_cost\": 26791.612059372073\n    }\n  ],\n  \"join_type\": \"inner join\",\n  \"operation\": \"Nested loop inner join\",\n  \"query_type\": \"select\",\n  \"access_type\": \"join\",\n  \"actual_rows\": 6480.0,\n  \"actual_loops\": 1,\n  \"estimated_rows\": 1328603585.4927242,\n  \"join_algorithm\": \"nested_loop\",\n  \"actual_last_row_ms\": 64.959506,\n  \"actual_first_row_ms\": 51.146847,\n  \"estimated_total_cost\": 132864372.99927242\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "SIMPLE",
+          "customers",
+          null,
+          "ALL",
+          "PRIMARY",
+          null,
+          null,
+          null,
+          19951,
+          100,
+          null
+        ],
+        [
+          1,
+          "SIMPLE",
+          "<subquery2>",
+          null,
+          "eq_ref",
+          "<auto_distinct_key>",
+          "<auto_distinct_key>",
+          "4",
+          "shop.customers.id",
+          1,
+          100,
+          null
+        ],
+        [
+          2,
+          "MATERIALIZED",
+          "orders",
+          null,
+          "ALL",
+          "orders_customer_id_idx",
+          null,
+          null,
+          null,
+          199800,
+          33.33,
+          "Using where"
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "sqlite-3.27-in-subquery",
+  "sqliteVersion": "3.27.2",
+  "modifies": false,
+  "query": "SELECT * FROM customers WHERE id IN (SELECT customer_id FROM orders WHERE total > 2400)",
+  "columns": [
+    "id",
+    "parent",
+    "notused",
+    "detail"
+  ],
+  "rows": [
+    [
+      2,
+      0,
+      0,
+      "SEARCH TABLE customers USING INTEGER PRIMARY KEY (rowid=?)"
+    ],
+    [
+      6,
+      0,
+      0,
+      "LIST SUBQUERY 1"
+    ],
+    [
+      8,
+      6,
+      0,
+      "SCAN TABLE orders"
+    ]
+  ]
+}

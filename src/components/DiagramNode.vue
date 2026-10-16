@@ -21,6 +21,8 @@ defineEmits<{ select: [id: number] }>();
 const share = computed(() => (props.colorBy === "time" ? props.stats?.timeShare : props.stats?.costShare) ?? 0);
 const heat = computed(() => heatLevel(share.value));
 
+const firstCondition = computed(() => props.node.conditions.find((c) => c.label !== "Output"));
+
 const subtitle = computed(() => {
   const n = props.node;
   const parts: string[] = [];
@@ -28,8 +30,14 @@ const subtitle = computed(() => {
   if (n.index) parts.push(n.target ? `using ${n.index}` : n.index);
   if (parts.length) return parts.join(" ");
   if (n.description) return n.description;
-  const condition = n.conditions.find((c) => c.label !== "Output");
-  return condition ? condition.expression : "";
+  return firstCondition.value?.expression ?? "";
+});
+
+/** Plans without numbers (SQLite) show the condition the subtitle had no room for. */
+const detail = computed(() => {
+  const n = props.node;
+  if (n.target || n.index) return firstCondition.value?.expression ?? n.description ?? "";
+  return n.description && subtitle.value !== n.description ? n.description : "";
 });
 
 const metric = computed(() => {
@@ -98,7 +106,8 @@ const worstInsight = computed(() => props.node.insights[0]);
         <span v-if="metric" class="value">{{ metric }}</span>
         <span class="share">{{ formatPercent(share) }}</span>
       </div>
-      <div class="rows">
+      <div v-if="!rows && metric === undefined && detail" class="detail mono" :title="detail">{{ detail }}</div>
+      <div v-else class="rows">
         <span>{{ rows }}</span>
         <span v-if="estimate" class="estimate" :class="{ bad: estimate.bad }" :title="`Estimated ${node.estimatedRows} rows per loop`">
           {{ estimate.arrow }} {{ estimate.factor }} <span class="muted">({{ estimate.text }})</span>
@@ -151,6 +160,13 @@ const worstInsight = computed(() => props.node.insights[0]);
 }
 .heat-3 {
   --heat-color: var(--heat-high);
+}
+.detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-light);
+  font-size: 0.6875rem;
 }
 .subplan {
   position: absolute;

@@ -1,0 +1,101 @@
+{
+  "name": "mariadb-11.4-dependent-subquery",
+  "flavor": "mariadb",
+  "serverVersion": "11.4.13-MariaDB-ubu2404",
+  "version": 110413,
+  "modifies": false,
+  "query": "SELECT p.id, p.name,\n  (SELECT max(oi.quantity) FROM order_items oi WHERE oi.unit_price = p.price) AS max_qty\nFROM products p\nWHERE p.category = 'toys'",
+  "outputs": {
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost\": 0.3428384,\n    \"nested_loop\": [\n      {\n        \"table\": {\n          \"table_name\": \"p\",\n          \"access_type\": \"ALL\",\n          \"loops\": 1,\n          \"rows\": 2000,\n          \"cost\": 0.3428384,\n          \"filtered\": 100,\n          \"attached_condition\": \"p.category = 'toys'\"\n        }\n      }\n    ],\n    \"subqueries\": [\n      {\n        \"subquery_cache\": {\n          \"state\": \"uninitialized\",\n          \"query_block\": {\n            \"select_id\": 2,\n            \"cost\": 98.9338188,\n            \"nested_loop\": [\n              {\n                \"table\": {\n                  \"table_name\": \"oi\",\n                  \"access_type\": \"ALL\",\n                  \"loops\": 1,\n                  \"rows\": 598656,\n                  \"cost\": 98.9338188,\n                  \"filtered\": 100,\n                  \"attached_condition\": \"oi.unit_price = p.price\"\n                }\n              }\n            ]\n          }\n        }\n      }\n    ]\n  }\n}",
+    "jsonAnalyze": "{\n  \"query_optimization\": {\n    \"r_total_time_ms\": 0.033498411\n  },\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost\": 0.3428384,\n    \"r_loops\": 1,\n    \"r_total_time_ms\": 10755.55128,\n    \"nested_loop\": [\n      {\n        \"table\": {\n          \"table_name\": \"p\",\n          \"access_type\": \"ALL\",\n          \"loops\": 1,\n          \"r_loops\": 1,\n          \"rows\": 2000,\n          \"r_rows\": 2000,\n          \"cost\": 0.3428384,\n          \"r_table_time_ms\": 0.683429363,\n          \"r_other_time_ms\": 2.252200434,\n          \"r_engine_stats\": {\n            \"pages_accessed\": 8\n          },\n          \"filtered\": 100,\n          \"r_filtered\": 20,\n          \"attached_condition\": \"p.category = 'toys'\"\n        }\n      }\n    ],\n    \"subqueries\": [\n      {\n        \"subquery_cache\": {\n          \"r_loops\": 400,\n          \"r_hit_ratio\": 75,\n          \"query_block\": {\n            \"select_id\": 2,\n            \"cost\": 98.9338188,\n            \"r_loops\": 100,\n            \"r_total_time_ms\": 10751.07835,\n            \"nested_loop\": [\n              {\n                \"table\": {\n                  \"table_name\": \"oi\",\n                  \"access_type\": \"ALL\",\n                  \"loops\": 1,\n                  \"r_loops\": 100,\n                  \"rows\": 598656,\n                  \"r_rows\": 600000,\n                  \"cost\": 98.9338188,\n                  \"r_table_time_ms\": 6348.869604,\n                  \"r_other_time_ms\": 4401.370194,\n                  \"r_engine_stats\": {\n                    \"pages_accessed\": 156100\n                  },\n                  \"filtered\": 100,\n                  \"r_filtered\": 0.2,\n                  \"attached_condition\": \"oi.unit_price = p.price\"\n                }\n              }\n            ]\n          }\n        }\n      }\n    ]\n  }\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "PRIMARY",
+          "p",
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          "2000",
+          "Using where"
+        ],
+        [
+          2,
+          "DEPENDENT SUBQUERY",
+          "oi",
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          "598656",
+          "Using where"
+        ]
+      ]
+    },
+    "traditionalAnalyze": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "r_rows",
+        "filtered",
+        "r_filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "PRIMARY",
+          "p",
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          "2000",
+          "2000.00",
+          100,
+          20,
+          "Using where"
+        ],
+        [
+          2,
+          "DEPENDENT SUBQUERY",
+          "oi",
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          "598656",
+          "600000.00",
+          100,
+          0.2,
+          "Using where"
+        ]
+      ]
+    }
+  }
+}

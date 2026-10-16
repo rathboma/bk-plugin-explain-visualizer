@@ -9,6 +9,19 @@ export interface QueryResultLike {
 /** Runs SQL through the host application and returns every result set. */
 export type RunQuery = (sql: string) => Promise<QueryResultLike[]>;
 
+/**
+ * What an engine knows about the server it talks to. Engines extend this
+ * with their own fields (PostgreSQL's string escaping, MySQL's SQL mode...)
+ * and get the same object back in every call.
+ */
+export interface ServerInfo {
+  /** The product, when it is more specific than the engine: "MariaDB". */
+  productName?: string;
+  /** Engine-specific numeric version, comparable within one product. */
+  version?: number;
+  versionLabel?: string;
+}
+
 /** A toggle shown in the options menu, e.g. VERBOSE or BUFFERS. */
 export interface ExplainOption {
   id: string;
@@ -17,19 +30,11 @@ export interface ExplainOption {
   defaultValue: boolean;
   /** Only applies when the statement is executed (ANALYZE). */
   requiresAnalyze?: boolean;
-  /** Minimum server version, in the engine's own numeric format. */
-  minServerVersion?: number;
+  /** Why the server can't use this option, e.g. "Needs PostgreSQL 13+". */
+  unavailable?(server: ServerInfo | undefined): string | undefined;
 }
 
 export type ExplainOptionValues = Record<string, boolean>;
-
-export interface ServerInfo {
-  /** Engine-specific numeric version, e.g. 170002 for PostgreSQL 17.2. */
-  version?: number;
-  versionLabel?: string;
-  /** PostgreSQL: false when backslashes escape quotes in plain strings. */
-  standardConformingStrings?: boolean;
-}
 
 /** What an engine learned about a statement before explaining it. */
 export interface StatementInfo {
@@ -39,10 +44,29 @@ export interface StatementInfo {
   modifiesData: boolean;
   /** Options asked for by an EXPLAIN prefix the user wrote themselves. */
   requestedOptions: { analyze?: boolean } & Partial<ExplainOptionValues>;
-  /** Positional parameters ($1, @p1...) found in the statement. */
+  /** Positional parameters ($1, ?...) found in the statement. */
   hasParameters: boolean;
   /** A reason the statement can't be explained. */
   error?: string;
+}
+
+export interface AnalyzeContext {
+  server?: ServerInfo;
+  /** Beekeeper Studio's read-only mode, which only allows read statements. */
+  readOnlyConnection: boolean;
+}
+
+/**
+ * How Explain Analyze, which runs the statement, treats one statement. Each
+ * engine decides: PostgreSQL rolls writes back, MySQL refuses them.
+ */
+export interface AnalyzePolicy {
+  /** Why the statement can't be analyzed. Shown under the editor and as the error. */
+  blocked?: string;
+  /** Shown under the editor while the statement is there, e.g. that writes are rolled back. */
+  note?: string;
+  /** Asked before the statement runs. */
+  confirm?: { title: string; message: string; confirmLabel: string };
 }
 
 export interface ExplainRequest {
@@ -64,7 +88,7 @@ export interface ParsedPlan {
 }
 
 export interface ExplainResult extends ParsedPlan {
-  /** The SQL that was sent to the database. */
+  /** The SQL that was sent to the database (the last statement, when several were). */
   sql: string;
 }
 
@@ -73,12 +97,15 @@ export interface ExplainResult extends ParsedPlan {
  * engine's EXPLAIN dialect and the shared {@link Plan} model.
  *
  * To add a database: implement this interface in `src/engines/<name>/` and
- * register it in `src/engines/registry.ts`.
+ * register it in `src/engines/registry.ts`. Nothing outside the engine's
+ * folder needs to know about it.
  */
 export interface ExplainEngine {
   /** Stable id, usually the main Beekeeper Studio connection type. */
   id: string;
   displayName: string;
+  /** Products listed as supported, when the engine covers several. Defaults to `displayName`. */
+  products?: string[];
   /** Beekeeper Studio connection types this engine can explain. */
   connectionTypes: string[];
   /** Whether the engine can run the statement to collect actual timings. */
@@ -90,16 +117,19 @@ export interface ExplainEngine {
   /** Optional link to the engine's EXPLAIN documentation. */
   docsUrl?: string;
 
-  /** Fetches the server version so options can be filtered. */
+  /** Fetches the server version (and anything else it needs) once per tab. */
   loadServerInfo?(run: RunQuery): Promise<ServerInfo>;
   /**
    * Validates and classifies a statement. Never throws. Pass the server info
    * when known: it can change how the statement is read.
    */
   inspect(sql: string, server?: ServerInfo): StatementInfo;
-  /** Builds the SQL that will be sent for a request. */
-  buildExplainSql(request: ExplainRequest): string;
-  /** Runs EXPLAIN through the host and parses the output. */
+  /**
+   * Whether Explain Analyze may run a statement, and what to tell the user.
+   * Only called for engines that support analyze; never throws.
+   */
+  analyzePolicy(statement: StatementInfo, context: AnalyzeContext): AnalyzePolicy;
+  /** Runs EXPLAIN through the host and parses the output. It may run several queries. */
   explain(request: ExplainRequest, run: RunQuery): Promise<ExplainResult>;
   /** Whether a pasted value looks like a plan from this engine. */
   canParse(input: unknown): boolean;

@@ -1,0 +1,26 @@
+{
+  "name": "sqlite-3.27-order-by-temp",
+  "sqliteVersion": "3.27.2",
+  "modifies": false,
+  "query": "SELECT * FROM order_items ORDER BY unit_price, id LIMIT 10",
+  "columns": [
+    "id",
+    "parent",
+    "notused",
+    "detail"
+  ],
+  "rows": [
+    [
+      4,
+      0,
+      0,
+      "SCAN TABLE order_items"
+    ],
+    [
+      20,
+      0,
+      0,
+      "USE TEMP B-TREE FOR ORDER BY"
+    ]
+  ]
+}

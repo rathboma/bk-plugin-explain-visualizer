@@ -1,0 +1,57 @@
+{
+  "name": "mysql-5.7-join-limit",
+  "flavor": "mysql",
+  "serverVersion": "5.7.44",
+  "version": 50744,
+  "modifies": false,
+  "query": "SELECT o.id, o.total, c.email\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nORDER BY o.ordered_at DESC\nLIMIT 20",
+  "outputs": {
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"84381.48\"\n    },\n    \"ordering_operation\": {\n      \"using_filesort\": false,\n      \"nested_loop\": [\n        {\n          \"table\": {\n            \"table_name\": \"o\",\n            \"access_type\": \"index\",\n            \"possible_keys\": [\n              \"orders_customer_id_idx\"\n            ],\n            \"key\": \"orders_ordered_at_idx\",\n            \"used_key_parts\": [\n              \"ordered_at\"\n            ],\n            \"key_length\": \"5\",\n            \"rows_examined_per_scan\": 20,\n            \"rows_produced_per_join\": 199800,\n            \"filtered\": \"100.00\",\n            \"cost_info\": {\n              \"read_cost\": \"609.00\",\n              \"eval_cost\": \"39960.00\",\n              \"prefix_cost\": \"40569.00\",\n              \"data_read_per_join\": \"9M\"\n            },\n            \"used_columns\": [\n              \"id\",\n              \"customer_id\",\n              \"ordered_at\",\n              \"total\"\n            ]\n          }\n        },\n        {\n          \"table\": {\n            \"table_name\": \"c\",\n            \"access_type\": \"eq_ref\",\n            \"possible_keys\": [\n              \"PRIMARY\"\n            ],\n            \"key\": \"PRIMARY\",\n            \"used_key_parts\": [\n              \"id\"\n            ],\n            \"key_length\": \"4\",\n            \"ref\": [\n              \"shop.o.customer_id\"\n            ],\n            \"rows_examined_per_scan\": 1,\n            \"rows_produced_per_join\": 199800,\n            \"filtered\": \"100.00\",\n            \"cost_info\": {\n              \"read_cost\": \"199800.00\",\n              \"eval_cost\": \"39960.00\",\n              \"prefix_cost\": \"280329.00\",\n              \"data_read_per_join\": \"22M\"\n            },\n            \"used_columns\": [\n              \"id\",\n              \"email\"\n            ]\n          }\n        }\n      ]\n    }\n  }\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "SIMPLE",
+          "o",
+          null,
+          "index",
+          "orders_customer_id_idx",
+          "orders_ordered_at_idx",
+          "5",
+          null,
+          20,
+          100,
+          null
+        ],
+        [
+          1,
+          "SIMPLE",
+          "c",
+          null,
+          "eq_ref",
+          "PRIMARY",
+          "PRIMARY",
+          "4",
+          "shop.o.customer_id",
+          1,
+          100,
+          null
+        ]
+      ]
+    }
+  }
+}

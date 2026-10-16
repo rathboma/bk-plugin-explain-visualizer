@@ -1,0 +1,59 @@
+{
+  "name": "mysql-9.7-insert-select",
+  "flavor": "mysql",
+  "serverVersion": "9.7.2",
+  "version": 90702,
+  "modifies": true,
+  "query": "INSERT INTO order_items (order_id, product_id, quantity, unit_price)\nSELECT id, 1, 1, 9.99 FROM orders WHERE customer_id < 20",
+  "outputs": {
+    "tree": "-> Insert into order_items\n    -> Filter: (orders.customer_id < 20)  (cost=38.3 rows=190)\n        -> Covering index range scan on orders using orders_customer_id_idx over (customer_id < 20)  (cost=38.3 rows=190)\n",
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"38.31\"\n    },\n    \"table\": {\n      \"insert\": true,\n      \"table_name\": \"order_items\",\n      \"access_type\": \"ALL\"\n    },\n    \"insert_from\": {\n      \"table\": {\n        \"table_name\": \"orders\",\n        \"access_type\": \"range\",\n        \"possible_keys\": [\n          \"orders_customer_id_idx\"\n        ],\n        \"key\": \"orders_customer_id_idx\",\n        \"used_key_parts\": [\n          \"customer_id\"\n        ],\n        \"key_length\": \"4\",\n        \"rows_examined_per_scan\": 190,\n        \"rows_produced_per_join\": 190,\n        \"filtered\": \"100.00\",\n        \"using_index\": true,\n        \"cost_info\": {\n          \"read_cost\": \"19.31\",\n          \"eval_cost\": \"19.00\",\n          \"prefix_cost\": \"38.31\",\n          \"data_read_per_join\": \"19K\"\n        },\n        \"used_columns\": [\n          \"id\",\n          \"customer_id\"\n        ],\n        \"attached_condition\": \"(`shop`.`orders`.`customer_id` < 20)\"\n      }\n    }\n  }\n}",
+    "jsonV2": "{\n  \"query\": \"insert into `shop`.`order_items` (`shop`.`order_items`.`order_id`,`shop`.`order_items`.`product_id`,`shop`.`order_items`.`quantity`,`shop`.`order_items`.`unit_price`) /* select#1 */ select `shop`.`orders`.`id` AS `id`,1 AS `1`,1 AS `1`,9.99 AS `9.99` from `shop`.`orders` where (`shop`.`orders`.`customer_id` < 20)\",\n  \"query_plan\": {\n    \"inputs\": [\n      {\n        \"inputs\": [\n          {\n            \"ranges\": [\n              \"(customer_id < 20)\"\n            ],\n            \"covering\": true,\n            \"operation\": \"Covering index range scan on orders using orders_customer_id_idx over (customer_id < 20)\",\n            \"index_name\": \"orders_customer_id_idx\",\n            \"table_name\": \"orders\",\n            \"access_type\": \"index\",\n            \"key_columns\": [\n              \"customer_id\"\n            ],\n            \"schema_name\": \"shop\",\n            \"used_columns\": [\n              \"id\",\n              \"customer_id\"\n            ],\n            \"estimated_rows\": 190.0,\n            \"index_access_type\": \"index_range_scan\",\n            \"estimated_total_cost\": 38.306097560975616\n          }\n        ],\n        \"condition\": \"(orders.customer_id < 20)\",\n        \"operation\": \"Filter: (orders.customer_id < 20)\",\n        \"access_type\": \"filter\",\n        \"estimated_rows\": 190.0,\n        \"filter_columns\": [\n          \"shop.orders.customer_id\"\n        ],\n        \"estimated_total_cost\": 38.306097560975616\n      }\n    ],\n    \"operation\": \"Insert into order_items\",\n    \"table_name\": \"order_items\",\n    \"schema_name\": \"shop\",\n    \"used_columns\": [\n      \"order_id\",\n      \"product_id\",\n      \"quantity\",\n      \"unit_price\"\n    ]\n  },\n  \"query_type\": \"insert\",\n  \"json_schema_version\": \"2.0\"\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "INSERT",
+          "order_items",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          1,
+          "SIMPLE",
+          "orders",
+          null,
+          "range",
+          "orders_customer_id_idx",
+          "orders_customer_id_idx",
+          "4",
+          null,
+          190,
+          100,
+          "Using where; Using index"
+        ]
+      ]
+    }
+  }
+}

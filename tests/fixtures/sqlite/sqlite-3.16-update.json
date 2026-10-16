@@ -1,0 +1,20 @@
+{
+  "name": "sqlite-3.16-update",
+  "sqliteVersion": "3.16.2",
+  "modifies": true,
+  "query": "UPDATE products SET price = price * 1.1 WHERE category = 'toys'",
+  "columns": [
+    "selectid",
+    "order",
+    "from",
+    "detail"
+  ],
+  "rows": [
+    [
+      0,
+      0,
+      0,
+      "SCAN TABLE products"
+    ]
+  ]
+}

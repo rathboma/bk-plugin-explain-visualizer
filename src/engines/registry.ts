@@ -1,11 +1,13 @@
 import type { ExplainEngine } from "./types";
 import { postgres } from "./postgres";
+import { mysql } from "./mysql";
+import { sqlite } from "./sqlite";
 
 /**
  * Every supported database. To add one, implement {@link ExplainEngine} in
  * `src/engines/<name>/` and list it here.
  */
-export const ENGINES: ExplainEngine[] = [postgres];
+export const ENGINES: ExplainEngine[] = [postgres, mysql, sqlite];
 
 export function engineForConnection(connectionType: string | undefined): ExplainEngine | undefined {
   if (!connectionType) return undefined;
@@ -18,8 +20,10 @@ export function engineForPlan(input: unknown, preferred?: ExplainEngine): Explai
   return ENGINES.find((engine) => engine !== preferred && engine.canParse(input));
 }
 
+/** "PostgreSQL, MySQL, MariaDB and SQLite" */
 export function supportedDatabaseNames(): string {
-  return ENGINES.map((e) => e.displayName).join(", ");
+  const names = ENGINES.flatMap((e) => e.products ?? [e.displayName]);
+  return names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names.join("");
 }
 
 const DATABASE_NAMES: Record<string, string> = {

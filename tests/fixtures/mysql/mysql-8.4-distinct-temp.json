@@ -1,0 +1,61 @@
+{
+  "name": "mysql-8.4-distinct-temp",
+  "flavor": "mysql",
+  "serverVersion": "8.4.11",
+  "version": 80411,
+  "modifies": false,
+  "query": "SELECT DISTINCT o.status, c.country FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.total > 1000",
+  "outputs": {
+    "tree": "-> Table scan on <temporary>  (cost=50099..50934 rows=66593)\n    -> Temporary table with deduplication  (cost=50099..50099 rows=66593)\n        -> Nested loop inner join  (cost=43440 rows=66593)\n            -> Filter: (o.total > 1000.00)  (cost=20132 rows=66593)\n                -> Table scan on o  (cost=20132 rows=199800)\n            -> Single-row index lookup on c using PRIMARY (id=o.customer_id)  (cost=0.25 rows=1)\n",
+    "treeAnalyze": "-> Table scan on <temporary>  (cost=50099..50934 rows=66593) (actual time=303..303 rows=21 loops=1)\n    -> Temporary table with deduplication  (cost=50099..50099 rows=66593) (actual time=303..303 rows=21 loops=1)\n        -> Nested loop inner join  (cost=43440 rows=66593) (actual time=0.159..260 rows=132000 loops=1)\n            -> Filter: (o.total > 1000.00)  (cost=20132 rows=66593) (actual time=0.145..71.1 rows=132000 loops=1)\n                -> Table scan on o  (cost=20132 rows=199800) (actual time=0.141..47.2 rows=200000 loops=1)\n            -> Single-row index lookup on c using PRIMARY (id=o.customer_id)  (cost=0.25 rows=1) (actual time=0.00119..0.00122 rows=1 loops=132000)\n",
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"43439.92\"\n    },\n    \"duplicates_removal\": {\n      \"using_temporary_table\": true,\n      \"using_filesort\": false,\n      \"nested_loop\": [\n        {\n          \"table\": {\n            \"table_name\": \"o\",\n            \"access_type\": \"ALL\",\n            \"possible_keys\": [\n              \"orders_customer_id_idx\"\n            ],\n            \"rows_examined_per_scan\": 199800,\n            \"rows_produced_per_join\": 66593,\n            \"filtered\": \"33.33\",\n            \"cost_info\": {\n              \"read_cost\": \"13472.92\",\n              \"eval_cost\": \"6659.33\",\n              \"prefix_cost\": \"20132.25\",\n              \"data_read_per_join\": \"6M\"\n            },\n            \"used_columns\": [\n              \"id\",\n              \"customer_id\",\n              \"status\",\n              \"total\"\n            ],\n            \"attached_condition\": \"(`shop`.`o`.`total` > 1000.00)\"\n          }\n        },\n        {\n          \"table\": {\n            \"table_name\": \"c\",\n            \"access_type\": \"eq_ref\",\n            \"possible_keys\": [\n              \"PRIMARY\"\n            ],\n            \"key\": \"PRIMARY\",\n            \"used_key_parts\": [\n              \"id\"\n            ],\n            \"key_length\": \"4\",\n            \"ref\": [\n              \"shop.o.customer_id\"\n            ],\n            \"rows_examined_per_scan\": 1,\n            \"rows_produced_per_join\": 66593,\n            \"filtered\": \"100.00\",\n            \"cost_info\": {\n              \"read_cost\": \"16648.33\",\n              \"eval_cost\": \"6659.33\",\n              \"prefix_cost\": \"43439.92\",\n              \"data_read_per_join\": \"26M\"\n            },\n            \"used_columns\": [\n              \"id\",\n              \"country\"\n            ]\n          }\n        }\n      ]\n    }\n  }\n}",
+    "jsonV2": "{\n  \"query\": \"/* select#1 */ select distinct `o`.`status` AS `status`,`c`.`country` AS `country` from `shop`.`orders` `o` join `shop`.`customers` `c` where ((`c`.`id` = `o`.`customer_id`) and (`o`.`total` > 1000.00))\",\n  \"inputs\": [\n    {\n      \"inputs\": [\n        {\n          \"inputs\": [\n            {\n              \"inputs\": [\n                {\n                  \"alias\": \"o\",\n                  \"operation\": \"Table scan on o\",\n                  \"table_name\": \"orders\",\n                  \"access_type\": \"table\",\n                  \"schema_name\": \"shop\",\n                  \"used_columns\": [\n                    \"id\",\n                    \"customer_id\",\n                    \"status\",\n                    \"total\"\n                  ],\n                  \"estimated_rows\": 199800.0,\n                  \"estimated_total_cost\": 20132.248804381732\n                }\n              ],\n              \"condition\": \"(o.total > 1000.00)\",\n              \"operation\": \"Filter: (o.total > 1000.00)\",\n              \"access_type\": \"filter\",\n              \"estimated_rows\": 66593.33294034004,\n              \"estimated_total_cost\": 20132.248804381732\n            },\n            {\n              \"alias\": \"c\",\n              \"covering\": false,\n              \"operation\": \"Single-row index lookup on c using PRIMARY (id=o.customer_id)\",\n              \"index_name\": \"PRIMARY\",\n              \"table_name\": \"customers\",\n              \"access_type\": \"index\",\n              \"schema_name\": \"shop\",\n              \"used_columns\": [\n                \"id\",\n                \"country\"\n              ],\n              \"estimated_rows\": 1.0,\n              \"lookup_condition\": \"id=o.customer_id\",\n              \"index_access_type\": \"index_lookup\",\n              \"estimated_total_cost\": 0.2500015016517811\n            }\n          ],\n          \"join_type\": \"inner join\",\n          \"operation\": \"Nested loop inner join\",\n          \"access_type\": \"join\",\n          \"estimated_rows\": 66593.33294034004,\n          \"join_algorithm\": \"nested_loop\",\n          \"estimated_total_cost\": 43439.91582980867\n        }\n      ],\n      \"operation\": \"Temporary table with deduplication\",\n      \"temp_table\": true,\n      \"access_type\": \"materialize\",\n      \"deduplication\": true,\n      \"estimated_rows\": 66593.33294034004,\n      \"estimated_total_cost\": 50099.249123842674,\n      \"estimated_first_row_cost\": 50099.249123842674\n    }\n  ],\n  \"operation\": \"Table scan on <temporary>\",\n  \"query_type\": \"select\",\n  \"table_name\": \"<temporary>\",\n  \"access_type\": \"table\",\n  \"estimated_rows\": 66593.33294034004,\n  \"estimated_total_cost\": 50934.16162384267,\n  \"estimated_first_row_cost\": 50099.26166132148\n}",
+    "jsonV2Analyze": "{\n  \"query\": \"/* select#1 */ select distinct `o`.`status` AS `status`,`c`.`country` AS `country` from `shop`.`orders` `o` join `shop`.`customers` `c` where ((`c`.`id` = `o`.`customer_id`) and (`o`.`total` > 1000.00))\",\n  \"inputs\": [\n    {\n      \"inputs\": [\n        {\n          \"inputs\": [\n            {\n              \"inputs\": [\n                {\n                  \"alias\": \"o\",\n                  \"operation\": \"Table scan on o\",\n                  \"table_name\": \"orders\",\n                  \"access_type\": \"table\",\n                  \"actual_rows\": 200000.0,\n                  \"schema_name\": \"shop\",\n                  \"actual_loops\": 1,\n                  \"used_columns\": [\n                    \"id\",\n                    \"customer_id\",\n                    \"status\",\n                    \"total\"\n                  ],\n                  \"estimated_rows\": 199800.0,\n                  \"actual_last_row_ms\": 45.110473,\n                  \"actual_first_row_ms\": 0.109013,\n                  \"estimated_total_cost\": 20132.248804381732\n                }\n              ],\n              \"condition\": \"(o.total > 1000.00)\",\n              \"operation\": \"Filter: (o.total > 1000.00)\",\n              \"access_type\": \"filter\",\n              \"actual_rows\": 132000.0,\n              \"actual_loops\": 1,\n              \"estimated_rows\": 66593.33294034004,\n              \"actual_last_row_ms\": 67.41561,\n              \"actual_first_row_ms\": 0.111667,\n              \"estimated_total_cost\": 20132.248804381732\n            },\n            {\n              \"alias\": \"c\",\n              \"covering\": false,\n              \"operation\": \"Single-row index lookup on c using PRIMARY (id=o.customer_id)\",\n              \"index_name\": \"PRIMARY\",\n              \"table_name\": \"customers\",\n              \"access_type\": \"index\",\n              \"actual_rows\": 1.0,\n              \"schema_name\": \"shop\",\n              \"actual_loops\": 132000,\n              \"used_columns\": [\n                \"id\",\n                \"country\"\n              ],\n              \"estimated_rows\": 1.0,\n              \"lookup_condition\": \"id=o.customer_id\",\n              \"index_access_type\": \"index_lookup\",\n              \"actual_last_row_ms\": 0.0010656370303030302,\n              \"actual_first_row_ms\": 0.0010317171666666667,\n              \"estimated_total_cost\": 0.2500015016517811\n            }\n          ],\n          \"join_type\": \"inner join\",\n          \"operation\": \"Nested loop inner join\",\n          \"access_type\": \"join\",\n          \"actual_rows\": 132000.0,\n          \"actual_loops\": 1,\n          \"estimated_rows\": 66593.33294034004,\n          \"join_algorithm\": \"nested_loop\",\n          \"actual_last_row_ms\": 232.004713,\n          \"actual_first_row_ms\": 0.11801700000000001,\n          \"estimated_total_cost\": 43439.91582980867\n        }\n      ],\n      \"operation\": \"Temporary table with deduplication\",\n      \"temp_table\": true,\n      \"access_type\": \"materialize\",\n      \"actual_rows\": 21.0,\n      \"actual_loops\": 1,\n      \"deduplication\": true,\n      \"estimated_rows\": 66593.33294034004,\n      \"actual_last_row_ms\": 266.60006000000004,\n      \"actual_first_row_ms\": 266.60006000000004,\n      \"estimated_total_cost\": 50099.249123842674,\n      \"estimated_first_row_cost\": 50099.249123842674\n    }\n  ],\n  \"operation\": \"Table scan on <temporary>\",\n  \"query_type\": \"select\",\n  \"table_name\": \"<temporary>\",\n  \"access_type\": \"table\",\n  \"actual_rows\": 21.0,\n  \"actual_loops\": 1,\n  \"estimated_rows\": 66593.33294034004,\n  \"actual_last_row_ms\": 266.606362,\n  \"actual_first_row_ms\": 266.603661,\n  \"estimated_total_cost\": 50934.16162384267,\n  \"estimated_first_row_cost\": 50099.26166132148\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "SIMPLE",
+          "o",
+          null,
+          "ALL",
+          "orders_customer_id_idx",
+          null,
+          null,
+          null,
+          199800,
+          33.33,
+          "Using where; Using temporary"
+        ],
+        [
+          1,
+          "SIMPLE",
+          "c",
+          null,
+          "eq_ref",
+          "PRIMARY",
+          "PRIMARY",
+          "4",
+          "shop.o.customer_id",
+          1,
+          100,
+          null
+        ]
+      ]
+    }
+  }
+}
