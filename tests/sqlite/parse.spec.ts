@@ -112,6 +112,38 @@ describe("SQLite plans", () => {
   });
 });
 
+describe("SQLite plans without a header or without steps", () => {
+  it("reads rows from SQLite 3.47+, which puts a cost in the notused column", () => {
+    // EXPLAIN QUERY PLAN on SQLite 3.50, copied from the grid without its header.
+    const range = [
+      [4, 0, 62, "SEARCH t USING INDEX ti (a=?)"],
+      [9, 0, 216, "SCAN u"],
+    ];
+    const { plan } = parseSqlitePlan(range);
+    expect(plan.root.children.map((n) => [n.operation, n.role])).toEqual([
+      ["Index search", "Outer loop"],
+      ["Scan", "Inner loop"],
+    ]);
+    expect(one(plan, "Scan").insights.map((i) => i.rule)).toEqual(["repeated-scan"]);
+  });
+
+  it("still reads the format before 3.24, whose rows include query 0", () => {
+    const old = sqliteFixture("sqlite-3.16-subqueries");
+    const { plan } = parseSqlitePlan(old.rows);
+    expect(shape(plan)).toEqual(shape(parse("sqlite-3.16-subqueries")));
+  });
+
+  it("shows a plan without steps for statements that read no tables", async () => {
+    const empty = parseSqlitePlan({ fields: [{ name: "id" }, { name: "parent" }, { name: "notused" }, { name: "detail" }], rows: [] });
+    expect(empty.plan.nodes.map((n) => n.operation)).toEqual(["No steps"]);
+    expect(empty.raw).toBe("QUERY PLAN");
+    expect(shape(parseSqlitePlan(empty.raw).plan)).toEqual(shape(empty.plan));
+    // Beekeeper Studio may return no columns at all for an empty result.
+    const result = await sqlite.explain({ statement: inspectStatement("INSERT INTO t VALUES (1)"), analyze: false, options: {} }, async () => [{ fields: [], rows: [] }]);
+    expect(result.plan.root.operation).toBe("No steps");
+  });
+});
+
 describe("pasted SQLite plans", () => {
   const shell = `QUERY PLAN
 |--SCAN c USING COVERING INDEX customers_country_idx
@@ -173,12 +205,27 @@ describe("reading SQLite statements", () => {
   });
 
   it("follows SQLite's quoting and placeholders", () => {
-    expect(inspectStatement("SELECT [a;b], `c;d`, \"e;f\", 'g;h' FROM t").error).toBeUndefined();
+    expect(inspectStatement("SELECT [a b], `c d`, \"e f\", 'g h' FROM t").error).toBeUndefined();
     // Backslashes don't escape in SQLite: the string ends at the second quote.
     expect(inspectStatement("SELECT 'a\\'; DELETE FROM t").error).toMatch(/Found 2 statements/);
     for (const param of ["?", "?1", ":id", "@id", "$id"]) {
       expect(inspectStatement(`SELECT * FROM t WHERE id = ${param}`).error).toMatch(/parameter/);
     }
+  });
+
+  it("refuses semicolons inside the statement, which Beekeeper Studio splits on", () => {
+    // Beekeeper Studio splits this into "...x\r'\n;" and "DELETE FROM t;" before running it.
+    expect(inspectStatement("SELECT 1 -- x\r'\n; DELETE FROM t; -- '").error).toBeDefined();
+    for (const sql of ["SELECT [a;b] FROM t", "SELECT 'a;b'", "SELECT 1 /* ; */ FROM t", 'SELECT "a;b" FROM t']) {
+      expect(inspectStatement(sql).error, sql).toMatch(/semicolon inside it/);
+    }
+    // The statement's own trailing semicolon is fine.
+    expect(inspectStatement("SELECT 1;").error).toBeUndefined();
+  });
+
+  it("ends -- comments only at a line feed, as SQLite does", () => {
+    expect(inspectStatement("SELECT 1 -- x\r'\n FROM t").error).toMatch(/carriage return/);
+    expect(inspectStatement("SELECT 1 -- note\r\nFROM t").error).toBeUndefined();
   });
 
   it("has no Explain Analyze", () => {

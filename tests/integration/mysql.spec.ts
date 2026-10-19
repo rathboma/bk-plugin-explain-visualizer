@@ -94,6 +94,41 @@ describe.skipIf(!url)("MySQL engine against a live server", () => {
     expect((rows as { one: number }[])[0].one).toBe(1);
   });
 
+  it("refuses every text the server reads as more than one statement", async () => {
+    // Each text hides a harmless second SELECT from a reader that gets
+    // MySQL's comment or string rules wrong. Sent as one request, the way
+    // Beekeeper Studio sends a statement, the server's answer says how many
+    // statements it saw; whenever that is more than one, the plugin must
+    // refuse the text.
+    const hide = (before: string, after = "") => `SELECT 1 ${before}; SELECT 'hidden' AS h; -- ${after}`;
+    const texts = [
+      hide("-- x\r'\n", "'"),
+      hide("# x\r'\n", "'"),
+      hide("--\x7f'\n", "'"),
+      hide("--\t'\n", "'"),
+      hide("/*!99999 ' */", "' */"),
+      hide("/*!50000 ' */", "' */"),
+      hide("/*M! ' */", "' */"),
+      hide("/*M!100100 ' */", "' */"),
+      hide("/*! ' */", "' */"),
+      hide("/* ' */", "'"),
+      hide("'a\\'", "'"),
+      hide('"a\\"', '"'),
+      "SELECT 1 /*! ; SELECT 'hidden' */",
+      "SELECT 1 /*!99999 ; SELECT 'hidden' */",
+    ];
+    for (const text of texts) {
+      let statements = 0;
+      try {
+        const [rows] = await pool.query(text);
+        statements = Array.isArray(rows) && Array.isArray(rows[0]) ? rows.length : 1;
+      } catch {
+        statements = 1; // A syntax error stops the request: nothing after it ran.
+      }
+      if (statements > 1) expect(mysql.inspect(text, server).error, JSON.stringify(text)).toBeDefined();
+    }
+  });
+
   it("follows the session's SQL mode", async () => {
     const conn = await pool.getConnection();
     try {

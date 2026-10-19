@@ -1,0 +1,103 @@
+{
+  "name": "mysql-9.7-derived-union",
+  "flavor": "mysql",
+  "serverVersion": "9.7.2",
+  "version": 90702,
+  "modifies": false,
+  "query": "SELECT * FROM customers c\nJOIN (SELECT customer_id FROM orders WHERE status = 'cancelled' UNION SELECT id FROM customers WHERE country = 'JP') u\n  ON u.customer_id = c.id",
+  "outputs": {
+    "tree": "-> Nested loop inner join  (cost=44.4e+6 rows=444e+6)\n    -> Table scan on c  (cost=2040 rows=19433)\n    -> Single-row covering index lookup on u using <auto_distinct_key> (customer_id = c.id)  (cost=26143..26143 rows=1)\n        -> Union materialize with deduplication  (cost=26143..26143 rows=22837)\n            -> Filter: (orders.`status` = 'cancelled')  (cost=20589 rows=19980)\n                -> Table scan on orders  (cost=20589 rows=199800)\n            -> Covering index lookup on customers using customers_country_idx (country = 'JP')  (cost=292 rows=2857)\n",
+    "treeAnalyze": "-> Nested loop inner join  (cost=44.4e+6 rows=444e+6) (actual time=626..762 rows=3200 loops=1)\n    -> Table scan on c  (cost=2040 rows=19433) (actual time=0.625..118 rows=20000 loops=1)\n    -> Single-row covering index lookup on u using <auto_distinct_key> (customer_id = c.id)  (cost=26142..26142 rows=1) (actual time=0.032..0.032 rows=0.16 loops=20000)\n        -> Union materialize with deduplication  (cost=26141..26141 rows=22837) (actual time=624..624 rows=3200 loops=1)\n            -> Filter: (orders.`status` = 'cancelled')  (cost=20589 rows=19980) (actual time=1.09..619 rows=4000 loops=1)\n                -> Table scan on orders  (cost=20589 rows=199800) (actual time=1.07..604 rows=200000 loops=1)\n            -> Covering index lookup on customers using customers_country_idx (country = 'JP')  (cost=290 rows=2857) (actual time=0.186..0.923 rows=2857 loops=1)\n",
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"8769.10\"\n    },\n    \"nested_loop\": [\n      {\n        \"table\": {\n          \"table_name\": \"c\",\n          \"access_type\": \"ALL\",\n          \"possible_keys\": [\n            \"PRIMARY\"\n          ],\n          \"rows_examined_per_scan\": 19433,\n          \"rows_produced_per_join\": 19433,\n          \"filtered\": \"100.00\",\n          \"cost_info\": {\n            \"read_cost\": \"24.25\",\n            \"eval_cost\": \"1943.30\",\n            \"prefix_cost\": \"1967.55\",\n            \"data_read_per_join\": \"7M\"\n          },\n          \"used_columns\": [\n            \"id\",\n            \"email\",\n            \"country\",\n            \"created_at\"\n          ]\n        }\n      },\n      {\n        \"table\": {\n          \"table_name\": \"u\",\n          \"access_type\": \"eq_ref\",\n          \"possible_keys\": [\n            \"<auto_distinct_key>\"\n          ],\n          \"key\": \"<auto_distinct_key>\",\n          \"used_key_parts\": [\n            \"customer_id\"\n          ],\n          \"key_length\": \"4\",\n          \"ref\": [\n            \"shop.c.id\"\n          ],\n          \"rows_examined_per_scan\": 1,\n          \"rows_produced_per_join\": 19433,\n          \"filtered\": \"100.00\",\n          \"using_index\": true,\n          \"cost_info\": {\n            \"read_cost\": \"4858.25\",\n            \"eval_cost\": \"1943.30\",\n            \"prefix_cost\": \"8769.10\",\n            \"data_read_per_join\": \"303K\"\n          },\n          \"used_columns\": [\n            \"customer_id\"\n          ],\n          \"materialized_from_subquery\": {\n            \"using_temporary_table\": true,\n            \"dependent\": false,\n            \"cacheable\": true,\n            \"query_block\": {\n              \"union_result\": {\n                \"using_temporary_table\": true,\n                \"select_id\": 4,\n                \"table_name\": \"<union2,3>\",\n                \"access_type\": \"ALL\",\n                \"query_specifications\": [\n                  {\n                    \"dependent\": false,\n                    \"cacheable\": true,\n                    \"query_block\": {\n                      \"select_id\": 2,\n                      \"cost_info\": {\n                        \"query_cost\": \"20132.25\"\n                      },\n                      \"table\": {\n                        \"table_name\": \"orders\",\n                        \"access_type\": \"ALL\",\n                        \"rows_examined_per_scan\": 199800,\n                        \"rows_produced_per_join\": 19980,\n                        \"filtered\": \"10.00\",\n                        \"cost_info\": {\n                          \"read_cost\": \"18134.25\",\n                          \"eval_cost\": \"1998.00\",\n                          \"prefix_cost\": \"20132.25\",\n                          \"data_read_per_join\": \"1M\"\n                        },\n                        \"used_columns\": [\n                          \"customer_id\",\n                          \"status\"\n                        ],\n                        \"attached_condition\": \"(`shop`.`orders`.`status` = 'cancelled')\"\n                      }\n                    }\n                  },\n                  {\n                    \"dependent\": false,\n                    \"cacheable\": true,\n                    \"query_block\": {\n                      \"select_id\": 3,\n                      \"cost_info\": {\n                        \"query_cost\": \"290.47\"\n                      },\n                      \"table\": {\n                        \"table_name\": \"customers\",\n                        \"access_type\": \"ref\",\n                        \"possible_keys\": [\n                          \"customers_country_idx\"\n                        ],\n                        \"key\": \"customers_country_idx\",\n                        \"used_key_parts\": [\n                          \"country\"\n                        ],\n                        \"key_length\": \"10\",\n                        \"ref\": [\n                          \"const\"\n                        ],\n                        \"rows_examined_per_scan\": 2857,\n                        \"rows_produced_per_join\": 2857,\n                        \"filtered\": \"100.00\",\n                        \"using_index\": true,\n                        \"cost_info\": {\n                          \"read_cost\": \"4.77\",\n                          \"eval_cost\": \"285.70\",\n                          \"prefix_cost\": \"290.47\",\n                          \"data_read_per_join\": \"1M\"\n                        },\n                        \"used_columns\": [\n                          \"id\",\n                          \"country\"\n                        ]\n                      }\n                    }\n                  }\n                ]\n              }\n            }\n          }\n        }\n      }\n    ]\n  }\n}",
+    "jsonV2": "{\n  \"query\": \"/* select#1 */ select `c`.`id` AS `id`,`c`.`email` AS `email`,`c`.`country` AS `country`,`c`.`created_at` AS `created_at`,`u`.`customer_id` AS `customer_id` from `shop`.`customers` `c` join (/* select#2 */ select `shop`.`orders`.`customer_id` AS `customer_id` from `shop`.`orders` where (`shop`.`orders`.`status` = 'cancelled') union /* select#3 */ select `shop`.`customers`.`id` AS `id` from `shop`.`customers` where (`shop`.`customers`.`country` = 'JP')) `u` where (`u`.`customer_id` = `c`.`id`)\",\n  \"query_plan\": {\n    \"inputs\": [\n      {\n        \"alias\": \"c\",\n        \"operation\": \"Table scan on c\",\n        \"table_name\": \"customers\",\n        \"access_type\": \"table\",\n        \"schema_name\": \"shop\",\n        \"used_columns\": [\n          \"id\",\n          \"email\",\n          \"country\",\n          \"created_at\"\n        ],\n        \"estimated_rows\": 19433.0,\n        \"estimated_total_cost\": 1967.5500000000004\n      },\n      {\n        \"inputs\": [\n          {\n            \"union\": true,\n            \"inputs\": [\n              {\n                \"inputs\": [\n                  {\n                    \"operation\": \"Table scan on orders\",\n                    \"table_name\": \"orders\",\n                    \"access_type\": \"table\",\n                    \"schema_name\": \"shop\",\n                    \"used_columns\": [\n                      \"customer_id\",\n                      \"status\"\n                    ],\n                    \"estimated_rows\": 199800.0,\n                    \"estimated_total_cost\": 20132.25\n                  }\n                ],\n                \"condition\": \"(orders.`status` = 'cancelled')\",\n                \"operation\": \"Filter: (orders.`status` = 'cancelled')\",\n                \"access_type\": \"filter\",\n                \"estimated_rows\": 19980.0002977252,\n                \"filter_columns\": [\n                  \"shop.orders.`status`\"\n                ],\n                \"estimated_total_cost\": 20132.25\n              },\n              {\n                \"covering\": true,\n                \"operation\": \"Covering index lookup on customers using customers_country_idx (country = 'JP')\",\n                \"index_name\": \"customers_country_idx\",\n                \"table_name\": \"customers\",\n                \"access_type\": \"index\",\n                \"key_columns\": [\n                  \"country\"\n                ],\n                \"schema_name\": \"shop\",\n                \"used_columns\": [\n                  \"id\",\n                  \"country\"\n                ],\n                \"estimated_rows\": 2857.0,\n                \"lookup_condition\": \"country = 'JP'\",\n                \"index_access_type\": \"index_lookup\",\n                \"lookup_references\": [\n                  \"const\"\n                ],\n                \"estimated_total_cost\": 290.47239761092146\n              }\n            ],\n            \"operation\": \"Union materialize with deduplication\",\n            \"access_type\": \"materialize\",\n            \"deduplication\": true,\n            \"estimated_rows\": 22837.0002977252,\n            \"estimated_total_cost\": 25684.704033031474,\n            \"estimated_first_row_cost\": 25684.704033031474\n          }\n        ],\n        \"covering\": true,\n        \"operation\": \"Single-row covering index lookup on u using <auto_distinct_key> (customer_id = c.id)\",\n        \"index_name\": \"<auto_distinct_key>\",\n        \"table_name\": \"u\",\n        \"access_type\": \"index\",\n        \"key_columns\": [\n          \"customer_id\"\n        ],\n        \"used_columns\": [\n          \"customer_id\"\n        ],\n        \"estimated_rows\": 1.0,\n        \"lookup_condition\": \"customer_id = c.id\",\n        \"index_access_type\": \"index_lookup\",\n        \"lookup_references\": [\n          \"shop.c.id\"\n        ],\n        \"estimated_total_cost\": 25684.95403817736,\n        \"estimated_first_row_cost\": 25684.95403817736\n      }\n    ],\n    \"join_type\": \"inner join\",\n    \"operation\": \"Nested loop inner join\",\n    \"access_type\": \"join\",\n    \"estimated_rows\": 443791426.7856938,\n    \"join_algorithm\": \"nested_loop\",\n    \"estimated_total_cost\": 44385968.47856938\n  },\n  \"query_type\": \"select\",\n  \"json_schema_version\": \"2.0\"\n}",
+    "jsonV2Analyze": "{\n  \"query\": \"/* select#1 */ select `c`.`id` AS `id`,`c`.`email` AS `email`,`c`.`country` AS `country`,`c`.`created_at` AS `created_at`,`u`.`customer_id` AS `customer_id` from `shop`.`customers` `c` join (/* select#2 */ select `shop`.`orders`.`customer_id` AS `customer_id` from `shop`.`orders` where (`shop`.`orders`.`status` = 'cancelled') union /* select#3 */ select `shop`.`customers`.`id` AS `id` from `shop`.`customers` where (`shop`.`customers`.`country` = 'JP')) `u` where (`u`.`customer_id` = `c`.`id`)\",\n  \"query_plan\": {\n    \"inputs\": [\n      {\n        \"alias\": \"c\",\n        \"operation\": \"Table scan on c\",\n        \"table_name\": \"customers\",\n        \"access_type\": \"table\",\n        \"actual_rows\": 20000.0,\n        \"schema_name\": \"shop\",\n        \"actual_loops\": 1,\n        \"used_columns\": [\n          \"id\",\n          \"email\",\n          \"country\",\n          \"created_at\"\n        ],\n        \"estimated_rows\": 19433.0,\n        \"actual_last_row_ms\": 5.835311,\n        \"actual_first_row_ms\": 0.100437,\n        \"estimated_total_cost\": 1967.5500000000004\n      },\n      {\n        \"inputs\": [\n          {\n            \"union\": true,\n            \"inputs\": [\n              {\n                \"inputs\": [\n                  {\n                    \"operation\": \"Table scan on orders\",\n                    \"table_name\": \"orders\",\n                    \"access_type\": \"table\",\n                    \"actual_rows\": 200000.0,\n                    \"schema_name\": \"shop\",\n                    \"actual_loops\": 1,\n                    \"used_columns\": [\n                      \"customer_id\",\n                      \"status\"\n                    ],\n                    \"estimated_rows\": 199800.0,\n                    \"actual_last_row_ms\": 35.885121999999996,\n                    \"actual_first_row_ms\": 0.12548900000000002,\n                    \"estimated_total_cost\": 20132.25\n                  }\n                ],\n                \"condition\": \"(orders.`status` = 'cancelled')\",\n                \"operation\": \"Filter: (orders.`status` = 'cancelled')\",\n                \"access_type\": \"filter\",\n                \"actual_rows\": 4000.0,\n                \"actual_loops\": 1,\n                \"estimated_rows\": 19980.0002977252,\n                \"filter_columns\": [\n                  \"shop.orders.`status`\"\n                ],\n                \"actual_last_row_ms\": 50.749809,\n                \"actual_first_row_ms\": 0.134969,\n                \"estimated_total_cost\": 20132.25\n              },\n              {\n                \"covering\": true,\n                \"operation\": \"Covering index lookup on customers using customers_country_idx (country = 'JP')\",\n                \"index_name\": \"customers_country_idx\",\n                \"table_name\": \"customers\",\n                \"access_type\": \"index\",\n                \"actual_rows\": 2857.0,\n                \"key_columns\": [\n                  \"country\"\n                ],\n                \"schema_name\": \"shop\",\n                \"actual_loops\": 1,\n                \"used_columns\": [\n                  \"id\",\n                  \"country\"\n                ],\n                \"estimated_rows\": 2857.0,\n                \"lookup_condition\": \"country = 'JP'\",\n                \"index_access_type\": \"index_lookup\",\n                \"lookup_references\": [\n                  \"const\"\n                ],\n                \"actual_last_row_ms\": 1.305263,\n                \"actual_first_row_ms\": 0.724149,\n                \"estimated_total_cost\": 290.47239761092146\n              }\n            ],\n            \"operation\": \"Union materialize with deduplication\",\n            \"access_type\": \"materialize\",\n            \"actual_rows\": 3200.0,\n            \"actual_loops\": 1,\n            \"deduplication\": true,\n            \"estimated_rows\": 22837.0002977252,\n            \"actual_last_row_ms\": 53.493486,\n            \"actual_first_row_ms\": 53.493486,\n            \"estimated_total_cost\": 25684.704033031474,\n            \"estimated_first_row_cost\": 25684.704033031474\n          }\n        ],\n        \"covering\": true,\n        \"operation\": \"Single-row covering index lookup on u using <auto_distinct_key> (customer_id = c.id)\",\n        \"index_name\": \"<auto_distinct_key>\",\n        \"table_name\": \"u\",\n        \"access_type\": \"index\",\n        \"actual_rows\": 0.16,\n        \"key_columns\": [\n          \"customer_id\"\n        ],\n        \"actual_loops\": 20000,\n        \"used_columns\": [\n          \"customer_id\"\n        ],\n        \"estimated_rows\": 1.0,\n        \"lookup_condition\": \"customer_id = c.id\",\n        \"index_access_type\": \"index_lookup\",\n        \"lookup_references\": [\n          \"shop.c.id\"\n        ],\n        \"actual_last_row_ms\": 0.0031430148499999996,\n        \"actual_first_row_ms\": 0.0031252340500000004,\n        \"estimated_total_cost\": 25684.95403817736,\n        \"estimated_first_row_cost\": 25684.95403817736\n      }\n    ],\n    \"join_type\": \"inner join\",\n    \"operation\": \"Nested loop inner join\",\n    \"access_type\": \"join\",\n    \"actual_rows\": 3200.0,\n    \"actual_loops\": 1,\n    \"estimated_rows\": 443791426.7856938,\n    \"join_algorithm\": \"nested_loop\",\n    \"actual_last_row_ms\": 71.884423,\n    \"actual_first_row_ms\": 53.604231,\n    \"estimated_total_cost\": 44385968.47856938\n  },\n  \"query_type\": \"select\",\n  \"json_schema_version\": \"2.0\"\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "PRIMARY",
+          "c",
+          null,
+          "ALL",
+          "PRIMARY",
+          null,
+          null,
+          null,
+          19433,
+          100,
+          null
+        ],
+        [
+          1,
+          "PRIMARY",
+          "<derived2>",
+          null,
+          "eq_ref",
+          "<auto_distinct_key>",
+          "<auto_distinct_key>",
+          "4",
+          "shop.c.id",
+          1,
+          100,
+          "Using index"
+        ],
+        [
+          2,
+          "DERIVED",
+          "orders",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          199800,
+          10,
+          "Using where"
+        ],
+        [
+          3,
+          "UNION",
+          "customers",
+          null,
+          "ref",
+          "customers_country_idx",
+          "customers_country_idx",
+          "10",
+          "const",
+          2857,
+          100,
+          "Using index"
+        ],
+        [
+          4,
+          "UNION RESULT",
+          "<union2,3>",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "Using temporary"
+        ]
+      ]
+    }
+  }
+}

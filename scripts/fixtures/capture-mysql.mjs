@@ -88,6 +88,24 @@ UNION ALL
 SELECT id, status, total, 0 FROM orders WHERE customer_id > 19950`,
   },
   {
+    name: "derived-union",
+    query: `SELECT * FROM customers c
+JOIN (SELECT customer_id FROM orders WHERE status = 'cancelled' UNION SELECT id FROM customers WHERE country = 'JP') u
+  ON u.customer_id = c.id`,
+  },
+  {
+    name: "subquery-union",
+    query: `SELECT * FROM customers
+WHERE id IN (SELECT customer_id FROM orders WHERE total > 2400 UNION SELECT id FROM customers WHERE country = 'JP')`,
+  },
+  {
+    name: "nested-union-all",
+    query: `SELECT id FROM orders WHERE id < 3
+UNION
+SELECT c.id FROM customers c
+JOIN (SELECT customer_id FROM orders WHERE status = 'pending' UNION ALL SELECT 1) d ON d.customer_id = c.id`,
+  },
+  {
     name: "semijoin",
     query: `SELECT * FROM customers WHERE id IN (SELECT customer_id FROM orders WHERE total > 2400)`,
   },

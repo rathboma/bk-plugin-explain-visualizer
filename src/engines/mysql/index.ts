@@ -84,7 +84,8 @@ export const mysql: ExplainEngine = {
       const table = results.find((r) => r.fields.some((f) => f.name.toLowerCase() === "select_type"));
       let parsed: ParsedPlan;
       try {
-        parsed = parseMysqlPlan(table ?? extractPlanOutput(results));
+        const flavor = server?.flavor === "mysql" || server?.flavor === "mariadb" ? server.flavor : undefined;
+        parsed = parseMysqlPlan(table ?? extractPlanOutput(results), { flavor });
       } catch (e) {
         // Single-table UPDATE and DELETE have no tree (nor, on MySQL 9, JSON):
         // an older format shows them.
@@ -98,5 +99,5 @@ export const mysql: ExplainEngine = {
   },
 
   canParse: canParseMysqlPlan,
-  parse: parseMysqlPlan,
+  parse: (input) => parseMysqlPlan(input),
 };

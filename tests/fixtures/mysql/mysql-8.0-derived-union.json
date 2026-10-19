@@ -1,0 +1,101 @@
+{
+  "name": "mysql-8.0-derived-union",
+  "flavor": "mysql",
+  "serverVersion": "8.0.46",
+  "version": 80046,
+  "modifies": false,
+  "query": "SELECT * FROM customers c\nJOIN (SELECT customer_id FROM orders WHERE status = 'cancelled' UNION SELECT id FROM customers WHERE country = 'JP') u\n  ON u.customer_id = c.id",
+  "outputs": {
+    "tree": "-> Nested loop inner join  (cost=44.2e+6 rows=442e+6)\n    -> Table scan on c  (cost=2092 rows=19947)\n    -> Single-row covering index lookup on u using <auto_distinct_key> (customer_id=c.id)  (cost=22396..22396 rows=1)\n        -> Union materialize with deduplication  (cost=22395..22395 rows=22138)\n            -> Filter: (orders.`status` = 'cancelled')  (cost=19890 rows=19281)\n                -> Table scan on orders  (cost=19890 rows=192810)\n            -> Covering index lookup on customers using customers_country_idx (country='JP')  (cost=292 rows=2857)\n",
+    "treeAnalyze": "-> Nested loop inner join  (cost=44.2e+6 rows=442e+6) (actual time=704..835 rows=3200 loops=1)\n    -> Table scan on c  (cost=2092 rows=19947) (actual time=0.499..121 rows=20000 loops=1)\n    -> Single-row covering index lookup on u using <auto_distinct_key> (customer_id=c.id)  (cost=22395..22395 rows=1) (actual time=0.0355..0.0356 rows=0.16 loops=20000)\n        -> Union materialize with deduplication  (cost=22394..22394 rows=22138) (actual time=703..703 rows=3200 loops=1)\n            -> Filter: (orders.`status` = 'cancelled')  (cost=19890 rows=19281) (actual time=1.54..700 rows=4000 loops=1)\n                -> Table scan on orders  (cost=19890 rows=192810) (actual time=1.52..684 rows=200000 loops=1)\n            -> Covering index lookup on customers using customers_country_idx (country='JP')  (cost=290 rows=2857) (actual time=0.141..0.651 rows=2857 loops=1)\n",
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"9000.40\"\n    },\n    \"nested_loop\": [\n      {\n        \"table\": {\n          \"table_name\": \"c\",\n          \"access_type\": \"ALL\",\n          \"possible_keys\": [\n            \"PRIMARY\"\n          ],\n          \"rows_examined_per_scan\": 19947,\n          \"rows_produced_per_join\": 19947,\n          \"filtered\": \"100.00\",\n          \"cost_info\": {\n            \"read_cost\": \"24.25\",\n            \"eval_cost\": \"1994.70\",\n            \"prefix_cost\": \"2018.95\",\n            \"data_read_per_join\": \"8M\"\n          },\n          \"used_columns\": [\n            \"id\",\n            \"email\",\n            \"country\",\n            \"created_at\"\n          ]\n        }\n      },\n      {\n        \"table\": {\n          \"table_name\": \"u\",\n          \"access_type\": \"eq_ref\",\n          \"possible_keys\": [\n            \"<auto_distinct_key>\"\n          ],\n          \"key\": \"<auto_distinct_key>\",\n          \"used_key_parts\": [\n            \"customer_id\"\n          ],\n          \"key_length\": \"4\",\n          \"ref\": [\n            \"shop.c.id\"\n          ],\n          \"rows_examined_per_scan\": 1,\n          \"rows_produced_per_join\": 19947,\n          \"filtered\": \"100.00\",\n          \"using_index\": true,\n          \"cost_info\": {\n            \"read_cost\": \"4986.75\",\n            \"eval_cost\": \"1994.70\",\n            \"prefix_cost\": \"9000.40\",\n            \"data_read_per_join\": \"311K\"\n          },\n          \"used_columns\": [\n            \"customer_id\"\n          ],\n          \"materialized_from_subquery\": {\n            \"using_temporary_table\": true,\n            \"dependent\": false,\n            \"cacheable\": true,\n            \"query_block\": {\n              \"union_result\": {\n                \"using_temporary_table\": true,\n                \"select_id\": 4,\n                \"table_name\": \"<union2,3>\",\n                \"access_type\": \"ALL\",\n                \"query_specifications\": [\n                  {\n                    \"dependent\": false,\n                    \"cacheable\": true,\n                    \"query_block\": {\n                      \"select_id\": 2,\n                      \"cost_info\": {\n                        \"query_cost\": \"19433.25\"\n                      },\n                      \"table\": {\n                        \"table_name\": \"orders\",\n                        \"access_type\": \"ALL\",\n                        \"rows_examined_per_scan\": 192810,\n                        \"rows_produced_per_join\": 19281,\n                        \"filtered\": \"10.00\",\n                        \"cost_info\": {\n                          \"read_cost\": \"17505.15\",\n                          \"eval_cost\": \"1928.10\",\n                          \"prefix_cost\": \"19433.25\",\n                          \"data_read_per_join\": \"1M\"\n                        },\n                        \"used_columns\": [\n                          \"customer_id\",\n                          \"status\"\n                        ],\n                        \"attached_condition\": \"(`shop`.`orders`.`status` = 'cancelled')\"\n                      }\n                    }\n                  },\n                  {\n                    \"dependent\": false,\n                    \"cacheable\": true,\n                    \"query_block\": {\n                      \"select_id\": 3,\n                      \"cost_info\": {\n                        \"query_cost\": \"290.47\"\n                      },\n                      \"table\": {\n                        \"table_name\": \"customers\",\n                        \"access_type\": \"ref\",\n                        \"possible_keys\": [\n                          \"customers_country_idx\"\n                        ],\n                        \"key\": \"customers_country_idx\",\n                        \"used_key_parts\": [\n                          \"country\"\n                        ],\n                        \"key_length\": \"10\",\n                        \"ref\": [\n                          \"const\"\n                        ],\n                        \"rows_examined_per_scan\": 2857,\n                        \"rows_produced_per_join\": 2857,\n                        \"filtered\": \"100.00\",\n                        \"using_index\": true,\n                        \"cost_info\": {\n                          \"read_cost\": \"4.77\",\n                          \"eval_cost\": \"285.70\",\n                          \"prefix_cost\": \"290.47\",\n                          \"data_read_per_join\": \"1M\"\n                        },\n                        \"used_columns\": [\n                          \"id\",\n                          \"country\"\n                        ]\n                      }\n                    }\n                  }\n                ]\n              }\n            }\n          }\n        }\n      }\n    ]\n  }\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "PRIMARY",
+          "c",
+          null,
+          "ALL",
+          "PRIMARY",
+          null,
+          null,
+          null,
+          19947,
+          100,
+          null
+        ],
+        [
+          1,
+          "PRIMARY",
+          "<derived2>",
+          null,
+          "eq_ref",
+          "<auto_distinct_key>",
+          "<auto_distinct_key>",
+          "4",
+          "shop.c.id",
+          1,
+          100,
+          "Using index"
+        ],
+        [
+          2,
+          "DERIVED",
+          "orders",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          192810,
+          10,
+          "Using where"
+        ],
+        [
+          3,
+          "UNION",
+          "customers",
+          null,
+          "ref",
+          "customers_country_idx",
+          "customers_country_idx",
+          "10",
+          "const",
+          2857,
+          100,
+          "Using index"
+        ],
+        [
+          4,
+          "UNION RESULT",
+          "<union2,3>",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "Using temporary"
+        ]
+      ]
+    }
+  }
+}

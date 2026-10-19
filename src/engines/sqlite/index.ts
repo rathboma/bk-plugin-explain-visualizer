@@ -36,8 +36,9 @@ export const sqlite: ExplainEngine = {
     const statement = request.statement.statement;
     const sql = `EXPLAIN QUERY PLAN ${statement}`;
     const results = await run(sql);
-    const result = results.find((r) => r.fields.some((f) => f.name.toLowerCase() === "detail"));
-    if (!result) throw new Error("The database did not return a query plan.");
+    // No rows (and, from Beekeeper Studio, no columns either) when the
+    // statement reads no tables: a plan without steps.
+    const result = results.find((r) => r.fields.some((f) => f.name.toLowerCase() === "detail")) ?? { fields: [], rows: [] };
     const parsed = parseSqlitePlan(result);
     parsed.plan.query = statement;
     return { ...parsed, sql };

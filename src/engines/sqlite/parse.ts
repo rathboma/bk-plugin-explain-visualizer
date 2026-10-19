@@ -83,9 +83,13 @@ function fromSelectIds(rows: Tuple[]): Step[] {
 
 /** Whether 4-column tuples are the current (id, parent, notused, detail) format. */
 function isTreeFormat(rows: Tuple[], header?: string[]): boolean {
-  if (header) return header[0] === "id" || header[1] === "parent";
+  if (header?.length) return header[0] === "id" || header[1] === "parent";
+  // Before 3.24 the first column numbers the queries, 0 being the main one.
+  // Since, every row has a positive id, and its parent's id or 0. (The third
+  // column, "notused", holds a cost estimate in recent versions.)
+  if (rows.some((r) => r[0] === 0)) return false;
   const ids = new Set(rows.map((r) => r[0]));
-  return ids.size === rows.length && rows.every((r) => r[1] === 0 || ids.has(r[1])) && rows.every((r) => r[2] === 0);
+  return ids.size === rows.length && rows.every((r) => r[1] === 0 || ids.has(r[1]));
 }
 
 /**
@@ -98,6 +102,7 @@ interface Steps {
 }
 
 function fromTuples(rows: Tuple[], header?: string[]): Steps {
+  if (!rows.length) return { steps: [] };
   if (isTreeFormat(rows, header)) return { steps: fromTree(rows) };
   const raw = ["selectid|order|from|detail", ...rows.map((r) => r.join("|"))].join("\n");
   return { steps: fromSelectIds(rows), raw };
@@ -218,8 +223,27 @@ function toDraft(step: Step, subplans: Set<string>, role?: string): DraftNode {
   };
 }
 
+/**
+ * SQLite lists no steps for statements that read no table, such as
+ * INSERT ... VALUES. That is a plan too, with one node saying so.
+ */
+function emptyPlan(sourceFormat: string): ParsedPlan {
+  const { root, nodes } = finalizeTree({
+    operation: "No steps",
+    label: "QUERY PLAN",
+    kind: "other",
+    description: "the statement reads no tables",
+    conditions: [],
+    properties: [],
+    children: [],
+    raw: {},
+  });
+  const plan: Plan = { engine: "sqlite", sourceFormat, analyzed: false, root, nodes, properties: [], insights: [] };
+  return { plan: finishPlan(plan), raw: renderSteps([]), rawFormat: "text" };
+}
+
 function planFrom({ steps, raw }: Steps, sourceFormat: string): ParsedPlan {
-  if (!steps.length) throw new Error("The plan is empty.");
+  if (!steps.length) return emptyPlan(sourceFormat);
   const subplans = new Set<string>();
   const collect = (list: Step[]) =>
     list.forEach((step) => {
@@ -253,6 +277,8 @@ export function parseSqlitePlan(input: unknown): ParsedPlan {
     return planFrom(stepsFromResult({ fields: Object.keys(rows[0] ?? {}).map((name) => ({ name })), rows }), "rows");
   }
   if (typeof input === "string") {
+    // The shell's header alone: a plan without steps, as the Raw view saves it.
+    if (/^\s*QUERY PLAN\s*$/i.test(input)) return emptyPlan("text");
     if (!looksLikeSqlitePlan(input)) throw new Error("This doesn't look like SQLite EXPLAIN QUERY PLAN output.");
     return planFrom(stepsFromText(input), "text");
   }

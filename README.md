@@ -114,11 +114,14 @@ which writes commits what the function did, the same as running it in a query
 tab. On MariaDB, Beekeeper Studio's read-only mode refuses the `ANALYZE`
 statement, so Explain Analyze is not available on read-only connections.
 
-The statement is read with MySQL's rules: `#` and `-- ` comments, backslash
-escapes, `"..."` strings, and `/*! ... */` comments, whose contents MySQL runs.
-`NO_BACKSLASH_ESCAPES` and `ANSI_QUOTES` change how strings end, and a pooled
-connection may have either, so a statement has to read as one statement, and
-as a read, under every combination of them.
+The statement is read with MySQL's rules: `#` and `-- ` comments that end only
+at a line feed, backslash escapes, `"..."` strings, and `/*! ... */` comments,
+whose contents MySQL runs. `NO_BACKSLASH_ESCAPES` and `ANSI_QUOTES` change how
+strings end, and a pooled connection may have either, so a statement has to
+read as one statement, and as a read, under every combination of them. Text a
+server may read in more than one way is refused rather than guessed at: a
+version-gated `/*!50700 ... */` or MariaDB-only `/*M! ... */` comment, a
+carriage return inside a `--` comment, or a NUL character.
 
 MariaDB times each table rather than each step, so the time of a join or a
 temporary table is what the query took beyond the tables it read.
@@ -131,6 +134,10 @@ steps and the table view their details, and there is no Explain Analyze.
 Insights point at temporary indexes SQLite builds on every run, tables scanned
 once per row of a join or a correlated subquery, and sorts in a temporary
 B-tree. LibSQL connections use the same engine.
+
+Beekeeper Studio splits SQLite text into statements with its own parser before
+running them, so a statement with a semicolon inside it (in a string, name or
+comment) is refused: no splitter can then find a second statement in it.
 
 ## Screenshots
 

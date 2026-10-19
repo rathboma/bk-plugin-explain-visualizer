@@ -2,9 +2,13 @@ import type { StatementInfo } from "../types";
 import { splitStatements, type LexerDialect, type Token } from "../shared/lexer";
 import { emptyStatement, firstKeyword, onlyStatement, parameterError, sourceOf, word } from "../shared/statement";
 
-/** SQLite's scanner rules (tokenize.c): no backslash escapes, four kinds of quoted names. */
+/**
+ * SQLite's scanner rules (tokenize.c): -- comments end at a line feed, no
+ * backslash escapes, four kinds of quoted names.
+ */
 export const sqliteDialect: LexerDialect = {
   dashComments: "always",
+  lineCommentEnd: "lf",
   quotes: [
     { open: "'", type: "string" },
     { open: '"', type: "identifier" },
@@ -38,9 +42,21 @@ export function inspectStatement(sql: string): StatementInfo {
   const body = tokens.slice(start);
   if (body.length === 0) return emptyStatement("", "No SQL statement to explain.");
 
+  // Beekeeper Studio splits SQLite text into statements with its own parser
+  // before running each one, and that parser doesn't always agree with
+  // SQLite on what is a string or comment. Without a semicolon there is
+  // nothing to split, so the EXPLAIN can't turn into two statements.
+  const statement = sourceOf(sql, body);
+  if (statement.includes(";")) {
+    return emptyStatement(
+      statement,
+      "The statement has a semicolon inside it (in a string, name or comment). Beekeeper Studio splits SQLite text at semicolons with its own rules, so it can't be explained safely."
+    );
+  }
+
   const first = firstKeyword(body);
   return {
-    statement: sourceOf(sql, body),
+    statement,
     modifiesData: !first || !READ_STATEMENTS.has(first) || writes(body),
     requestedOptions: {},
     hasParameters: body.some((t) => t.type === "param"),

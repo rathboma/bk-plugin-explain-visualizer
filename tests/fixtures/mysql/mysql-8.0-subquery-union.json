@@ -1,0 +1,87 @@
+{
+  "name": "mysql-8.0-subquery-union",
+  "flavor": "mysql",
+  "serverVersion": "8.0.46",
+  "version": 80046,
+  "modifies": false,
+  "query": "SELECT * FROM customers\nWHERE id IN (SELECT customer_id FROM orders WHERE total > 2400 UNION SELECT id FROM customers WHERE country = 'JP')",
+  "outputs": {
+    "tree": "-> Filter: <in_optimizer>(customers.id,<exists>(select #2))  (cost=2019 rows=19947)\n    -> Table scan on customers  (cost=2019 rows=19947)\n    -> Select #2 (subquery in condition; dependent)\n        -> Limit: 1 row(s)  (cost=5.32..5.32 rows=1)\n            -> Table scan on <union temporary>  (cost=5.32..5.63 rows=1.14)\n                -> Union materialize with deduplication  (cost=3.12..3.12 rows=1.14)\n                    -> Limit table size: 1 unique row(s)\n                        -> Limit: 1 row(s)  (cost=2.74 rows=1)\n                            -> Filter: (orders.total > 2400.00)  (cost=2.74 rows=3.23)\n                                -> Index lookup on orders using orders_customer_id_idx (customer_id=<cache>(customers.id))  (cost=2.74 rows=9.68)\n                    -> Limit table size: 1 unique row(s)\n                        -> Limit: 1 row(s)  (cost=0.264 rows=0.143)\n                            -> Filter: (customers.country = 'JP')  (cost=0.264 rows=0.143)\n                                -> Single-row index lookup on customers using PRIMARY (id=<cache>(customers.id))  (cost=0.264 rows=1)\n",
+    "treeAnalyze": "-> Filter: <in_optimizer>(customers.id,<exists>(select #2))  (cost=2019 rows=19947) (actual time=0.312..699 rows=8409 loops=1)\n    -> Table scan on customers  (cost=2019 rows=19947) (actual time=0.0955..7.82 rows=20000 loops=1)\n    -> Select #2 (subquery in condition; dependent)\n        -> Limit: 1 row(s)  (cost=5.32..5.32 rows=1) (actual time=0.0333..0.0333 rows=0.42 loops=20000)\n            -> Table scan on <union temporary>  (cost=5.32..5.63 rows=1.14) (actual time=0.0331..0.0331 rows=0.42 loops=20000)\n                -> Union materialize with deduplication  (cost=3.12..3.12 rows=1.14) (actual time=0.0326..0.0326 rows=0.42 loops=20000)\n                    -> Limit table size: 1 unique row(s)\n                        -> Limit: 1 row(s)  (cost=2.74 rows=1) (actual time=0.0302..0.0302 rows=0.324 loops=20000)\n                            -> Filter: (orders.total > 2400.00)  (cost=2.74 rows=3.23) (actual time=0.03..0.03 rows=0.324 loops=20000)\n                                -> Index lookup on orders using orders_customer_id_idx (customer_id=<cache>(customers.id))  (cost=2.74 rows=9.68) (actual time=0.028..0.029 rows=7.08 loops=20000)\n                    -> Limit table size: 1 unique row(s)\n                        -> Limit: 1 row(s)  (cost=0.264 rows=0.143) (actual time=0.0024..0.0024 rows=0.143 loops=13520)\n                            -> Filter: (customers.country = 'JP')  (cost=0.264 rows=0.143) (actual time=0.00222..0.00222 rows=0.143 loops=13520)\n                                -> Single-row index lookup on customers using PRIMARY (id=<cache>(customers.id))  (cost=0.264 rows=1) (actual time=0.00177..0.0018 rows=1 loops=13520)\n",
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"2018.95\"\n    },\n    \"table\": {\n      \"table_name\": \"customers\",\n      \"access_type\": \"ALL\",\n      \"rows_examined_per_scan\": 19947,\n      \"rows_produced_per_join\": 19947,\n      \"filtered\": \"100.00\",\n      \"cost_info\": {\n        \"read_cost\": \"24.25\",\n        \"eval_cost\": \"1994.70\",\n        \"prefix_cost\": \"2018.95\",\n        \"data_read_per_join\": \"8M\"\n      },\n      \"used_columns\": [\n        \"id\",\n        \"email\",\n        \"country\",\n        \"created_at\"\n      ],\n      \"attached_condition\": \"<in_optimizer>(`shop`.`customers`.`id`,<exists>(/* select#2 */ select `shop`.`orders`.`customer_id` from `shop`.`orders` where ((`shop`.`orders`.`total` > 2400.00) and (<cache>(`shop`.`customers`.`id`) = `shop`.`orders`.`customer_id`)) union /* select#3 */ select `shop`.`customers`.`id` from `shop`.`customers` where ((`shop`.`customers`.`country` = 'JP') and (<cache>(`shop`.`customers`.`id`) = `shop`.`customers`.`id`))))\",\n      \"attached_subqueries\": [\n        {\n          \"dependent\": true,\n          \"cacheable\": false,\n          \"query_block\": {\n            \"union_result\": {\n              \"using_temporary_table\": true,\n              \"select_id\": 4,\n              \"table_name\": \"<union2,3>\",\n              \"access_type\": \"ALL\",\n              \"query_specifications\": [\n                {\n                  \"dependent\": true,\n                  \"cacheable\": false,\n                  \"query_block\": {\n                    \"select_id\": 2,\n                    \"cost_info\": {\n                      \"query_cost\": \"3.39\"\n                    },\n                    \"table\": {\n                      \"table_name\": \"orders\",\n                      \"access_type\": \"ref\",\n                      \"possible_keys\": [\n                        \"orders_customer_id_idx\"\n                      ],\n                      \"key\": \"orders_customer_id_idx\",\n                      \"used_key_parts\": [\n                        \"customer_id\"\n                      ],\n                      \"key_length\": \"4\",\n                      \"ref\": [\n                        \"func\"\n                      ],\n                      \"rows_examined_per_scan\": 9,\n                      \"rows_produced_per_join\": 3,\n                      \"filtered\": \"33.33\",\n                      \"cost_info\": {\n                        \"read_cost\": \"2.42\",\n                        \"eval_cost\": \"0.32\",\n                        \"prefix_cost\": \"3.39\",\n                        \"data_read_per_join\": \"335\"\n                      },\n                      \"used_columns\": [\n                        \"customer_id\",\n                        \"total\"\n                      ],\n                      \"attached_condition\": \"(`shop`.`orders`.`total` > 2400.00)\"\n                    }\n                  }\n                },\n                {\n                  \"dependent\": true,\n                  \"cacheable\": false,\n                  \"query_block\": {\n                    \"select_id\": 3,\n                    \"cost_info\": {\n                      \"query_cost\": \"0.35\"\n                    },\n                    \"table\": {\n                      \"table_name\": \"customers\",\n                      \"access_type\": \"eq_ref\",\n                      \"possible_keys\": [\n                        \"PRIMARY\",\n                        \"customers_country_idx\"\n                      ],\n                      \"key\": \"PRIMARY\",\n                      \"used_key_parts\": [\n                        \"id\"\n                      ],\n                      \"key_length\": \"4\",\n                      \"ref\": [\n                        \"func\"\n                      ],\n                      \"rows_examined_per_scan\": 1,\n                      \"rows_produced_per_join\": 0,\n                      \"filtered\": \"14.32\",\n                      \"cost_info\": {\n                        \"read_cost\": \"0.25\",\n                        \"eval_cost\": \"0.01\",\n                        \"prefix_cost\": \"0.35\",\n                        \"data_read_per_join\": \"60\"\n                      },\n                      \"used_columns\": [\n                        \"id\",\n                        \"country\"\n                      ],\n                      \"attached_condition\": \"(`shop`.`customers`.`country` = 'JP')\"\n                    }\n                  }\n                }\n              ]\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "PRIMARY",
+          "customers",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          19947,
+          100,
+          "Using where"
+        ],
+        [
+          2,
+          "DEPENDENT SUBQUERY",
+          "orders",
+          null,
+          "ref",
+          "orders_customer_id_idx",
+          "orders_customer_id_idx",
+          "4",
+          "func",
+          9,
+          33.33,
+          "Using where"
+        ],
+        [
+          3,
+          "DEPENDENT UNION",
+          "customers",
+          null,
+          "eq_ref",
+          "PRIMARY,customers_country_idx",
+          "PRIMARY",
+          "4",
+          "func",
+          1,
+          14.32,
+          "Using where"
+        ],
+        [
+          4,
+          "UNION RESULT",
+          "<union2,3>",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "Using temporary"
+        ]
+      ]
+    }
+  }
+}

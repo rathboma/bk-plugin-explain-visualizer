@@ -66,6 +66,11 @@ describe.skipIf(!Database)("SQLite engine against a real database", () => {
     expect(insights).toContain("automatic-index");
   });
 
+  it("explains a statement that reads no tables", async () => {
+    const result = await explain("INSERT INTO customers (id, email, country) VALUES (5000, 'x', 'JP')");
+    expect(result.plan.root.operation).toBe("No steps");
+  });
+
   it("explains a write without running it", async () => {
     await explain("DELETE FROM orders WHERE customer_id = 5");
     const [{ rows }] = await run("SELECT count(*) AS n FROM orders WHERE customer_id = 5");

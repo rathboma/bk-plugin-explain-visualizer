@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { canParseMysqlPlan, NOT_EXECUTABLE_MESSAGE, parseMysqlPlan } from "../../src/engines/mysql/parse";
+import { canParseMysqlPlan, jsonFlavor, NOT_EXECUTABLE_MESSAGE, parseMysqlPlan } from "../../src/engines/mysql/parse";
+import { traditionalFlavor } from "../../src/engines/mysql/traditional";
+import { parseJsonKeepingDuplicates } from "../../src/engines/shared/json";
 import { postgres } from "../../src/engines/postgres";
 import { sqlite } from "../../src/engines/sqlite";
 import { allInsights } from "../../src/core/analysis";
@@ -395,5 +397,75 @@ possible_keys: PRIMARY
     // A range from the results grid has no header: columns are recognised by their values.
     const range = tsv.split("\n").slice(1).map((line) => line.split("\t"));
     expect(shape(parseMysqlPlan(range).plan).slice(1)).toEqual(expected);
+  });
+});
+
+describe("unions in the classic table", () => {
+  const tree = (name: string) => {
+    const { plan } = parseMysqlPlan(tableResult(mysqlFixture(name).outputs.traditional!));
+    const lines: string[] = [];
+    const walk = (node: PlanNode, depth: number) => {
+      lines.push(`${"  ".repeat(depth)}${node.operation}${node.target ? ` ${node.target}` : ""}`);
+      node.children.forEach((child) => walk(child, depth + 1));
+    };
+    walk(plan.root, 0);
+    return lines;
+  };
+
+  it.each(["mysql-5.7", "mysql-8.4", "mariadb-11.4"])("%s: a UNION in a derived table stays under it", (server) => {
+    const lines = tree(`${server}-derived-union`);
+    expect(lines[0]).toBe("Select #1");
+    const derived = lines.findIndex((l) => /<derived2>$/.test(l));
+    expect(lines.slice(derived + 1, derived + 4).map((l) => l.trim())).toEqual(["Materialize", "Query block", "Union"]);
+  });
+
+  it.each(["mysql-5.7", "mysql-8.4", "mariadb-11.4"])("%s: a UNION in a subquery stays a subquery", (server) => {
+    const { plan } = parseMysqlPlan(tableResult(mysqlFixture(`${server}-subquery-union`).outputs.traditional!));
+    expect(plan.root.operation).toBe("Select #1");
+    const subquery = plan.nodes.find((n) => n.role === "Subquery")!;
+    expect(subquery.description).toBe("dependent");
+    expect(subquery.children[0].operation).toBe("Union");
+    expect(subquery.children[0].children.map((c) => c.operation)).toEqual(["Select #2", "Select #3"]);
+  });
+
+  it.each(["mysql-5.7", "mysql-8.4", "mariadb-11.4"])("%s: a UNION ALL without a result row joins the block before it", (server) => {
+    const lines = tree(`${server}-nested-union-all`).map((l) => l.trim());
+    expect(lines.slice(0, 3)).toEqual(["Query block", "Union", "Select #1"]);
+    const inner = lines.indexOf("Union all");
+    expect(inner).toBeGreaterThan(3);
+    expect(lines.slice(inner + 1)).toEqual(expect.arrayContaining(["Select #3", "Select #4"]));
+    // MySQL 8 numbers the result row: it is not a query block of its own.
+    expect(lines.filter((l) => /^Select #\d+$/.test(l))).toHaveLength(4);
+  });
+});
+
+describe("telling MySQL and MariaDB plans apart", () => {
+  it("never mistakes one server's JSON or table for the other's", () => {
+    for (const fixture of fixtures) {
+      const other = fixture.flavor === "mysql" ? "mariadb" : "mysql";
+      for (const output of [fixture.outputs.json, fixture.outputs.jsonAnalyze].filter(Boolean)) {
+        const json = parseJsonKeepingDuplicates(output!) as Record<string, unknown>;
+        if (!json["query_block"]) continue;
+        expect(jsonFlavor(json), fixture.name).not.toBe(other);
+      }
+      for (const output of [fixture.outputs.traditional, fixture.outputs.traditionalAnalyze].filter(Boolean)) {
+        expect(traditionalFlavor(tableResult(output!).rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k.toLowerCase(), v])))), fixture.name).not.toBe(other);
+      }
+    }
+    // MariaDB's ANALYZE and repeated keys, MySQL's cost_info: recognised.
+    expect(jsonFlavor(JSON.parse(mysqlFixture("mariadb-11.4-join-aggregate").outputs.jsonAnalyze!))).toBe("mariadb");
+    expect(jsonFlavor(parseJsonKeepingDuplicates(mysqlFixture("mariadb-10.6-join-aggregate").outputs.json!) as never)).toBe("mariadb");
+    expect(jsonFlavor(JSON.parse(mysqlFixture("mysql-5.7-join-aggregate").outputs.json!))).toBe("mysql");
+  });
+
+  it("gives neutral advice when a plan could be either's, and follows the server when it is known", () => {
+    // MySQL 5.6 and MariaDB 10 describe a single-table plan the same way.
+    const simple = { query_block: { select_id: 1, table: { table_name: "t", access_type: "ALL", rows: 1000, filtered: 100 } } };
+    expect(jsonFlavor(simple)).toBeUndefined();
+    // Advice shows in row estimate insights, which need measurements.
+    const analyzed = mysqlFixture("mariadb-11.4-join-aggregate").outputs.jsonAnalyze!;
+    const advice = (plan: Plan) => allInsights(plan).find((i) => i.rule === "row-misestimate")?.detail ?? "";
+    expect(advice(parseMysqlPlan(analyzed).plan)).toMatch(/PERSISTENT FOR ALL/);
+    expect(advice(parseMysqlPlan(analyzed, { flavor: "mysql" }).plan)).toMatch(/HISTOGRAM/);
   });
 });

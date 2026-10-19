@@ -1,0 +1,86 @@
+{
+  "name": "mysql-8.0.17-subquery-union",
+  "flavor": "mysql",
+  "serverVersion": "8.0.17",
+  "version": 80017,
+  "modifies": false,
+  "query": "SELECT * FROM customers\nWHERE id IN (SELECT customer_id FROM orders WHERE total > 2400 UNION SELECT id FROM customers WHERE country = 'JP')",
+  "outputs": {
+    "tree": "-> Filter: <in_optimizer>(customers.id,<exists>(select #2))\n    -> Table scan on customers\n    -> Select #2 (subquery in condition; dependent)\n        <not executable by iterator executor>\n",
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"2112.10\"\n    },\n    \"table\": {\n      \"table_name\": \"customers\",\n      \"access_type\": \"ALL\",\n      \"rows_examined_per_scan\": 20151,\n      \"rows_produced_per_join\": 20151,\n      \"filtered\": \"100.00\",\n      \"cost_info\": {\n        \"read_cost\": \"97.00\",\n        \"eval_cost\": \"2015.10\",\n        \"prefix_cost\": \"2112.10\",\n        \"data_read_per_join\": \"8M\"\n      },\n      \"used_columns\": [\n        \"id\",\n        \"email\",\n        \"country\",\n        \"created_at\"\n      ],\n      \"attached_condition\": \"<in_optimizer>(`shop`.`customers`.`id`,<exists>(/* select#2 */ select 1 from `shop`.`orders` where ((`shop`.`orders`.`total` > 2400.00) and (<cache>(`shop`.`customers`.`id`) = `shop`.`orders`.`customer_id`)) union /* select#3 */ select 1 from `shop`.`customers` where ((`shop`.`customers`.`country` = 'JP') and (<cache>(`shop`.`customers`.`id`) = `shop`.`customers`.`id`))))\",\n      \"attached_subqueries\": [\n        {\n          \"dependent\": true,\n          \"cacheable\": false,\n          \"query_block\": {\n            \"union_result\": {\n              \"using_temporary_table\": true,\n              \"table_name\": \"<union2,3>\",\n              \"access_type\": \"ALL\",\n              \"query_specifications\": [\n                {\n                  \"dependent\": true,\n                  \"cacheable\": false,\n                  \"query_block\": {\n                    \"select_id\": 2,\n                    \"cost_info\": {\n                      \"query_cost\": \"11.05\"\n                    },\n                    \"table\": {\n                      \"table_name\": \"orders\",\n                      \"access_type\": \"ref\",\n                      \"possible_keys\": [\n                        \"orders_customer_id_idx\"\n                      ],\n                      \"key\": \"orders_customer_id_idx\",\n                      \"used_key_parts\": [\n                        \"customer_id\"\n                      ],\n                      \"key_length\": \"4\",\n                      \"ref\": [\n                        \"func\"\n                      ],\n                      \"rows_examined_per_scan\": 10,\n                      \"rows_produced_per_join\": 3,\n                      \"filtered\": \"33.33\",\n                      \"cost_info\": {\n                        \"read_cost\": \"10.04\",\n                        \"eval_cost\": \"0.33\",\n                        \"prefix_cost\": \"11.05\",\n                        \"data_read_per_join\": \"348\"\n                      },\n                      \"used_columns\": [\n                        \"customer_id\",\n                        \"total\"\n                      ],\n                      \"attached_condition\": \"(`shop`.`orders`.`total` > 2400.00)\"\n                    }\n                  }\n                },\n                {\n                  \"dependent\": true,\n                  \"cacheable\": false,\n                  \"query_block\": {\n                    \"select_id\": 3,\n                    \"cost_info\": {\n                      \"query_cost\": \"1.10\"\n                    },\n                    \"table\": {\n                      \"table_name\": \"customers\",\n                      \"access_type\": \"eq_ref\",\n                      \"possible_keys\": [\n                        \"PRIMARY\",\n                        \"customers_country_idx\"\n                      ],\n                      \"key\": \"PRIMARY\",\n                      \"used_key_parts\": [\n                        \"id\"\n                      ],\n                      \"key_length\": \"4\",\n                      \"ref\": [\n                        \"func\"\n                      ],\n                      \"rows_examined_per_scan\": 1,\n                      \"rows_produced_per_join\": 0,\n                      \"filtered\": \"14.18\",\n                      \"cost_info\": {\n                        \"read_cost\": \"1.00\",\n                        \"eval_cost\": \"0.01\",\n                        \"prefix_cost\": \"1.10\",\n                        \"data_read_per_join\": \"60\"\n                      },\n                      \"used_columns\": [\n                        \"id\",\n                        \"country\"\n                      ],\n                      \"attached_condition\": \"(`shop`.`customers`.`country` = 'JP')\"\n                    }\n                  }\n                }\n              ]\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "PRIMARY",
+          "customers",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          20151,
+          100,
+          "Using where"
+        ],
+        [
+          2,
+          "DEPENDENT SUBQUERY",
+          "orders",
+          null,
+          "ref",
+          "orders_customer_id_idx",
+          "orders_customer_id_idx",
+          "4",
+          "func",
+          10,
+          33.33,
+          "Using where"
+        ],
+        [
+          3,
+          "DEPENDENT UNION",
+          "customers",
+          null,
+          "eq_ref",
+          "PRIMARY,customers_country_idx",
+          "PRIMARY",
+          "4",
+          "func",
+          1,
+          14.18,
+          "Using where"
+        ],
+        [
+          null,
+          "UNION RESULT",
+          "<union2,3>",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "Using temporary"
+        ]
+      ]
+    }
+  }
+}

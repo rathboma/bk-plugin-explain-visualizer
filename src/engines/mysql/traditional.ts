@@ -112,6 +112,20 @@ export function rowsFromGrid(range: unknown[][]): Row[] | undefined {
   return range.map((r) => Object.fromEntries(columns.map((c, i) => [c, r[i]])));
 }
 
+/**
+ * Which server wrote a table, from what only one of them prints: MySQL 5.7+
+ * always has a partitions column, MariaDB's ANALYZE has r_rows, and their join
+ * buffers read "(Block Nested Loop)" or "(hash join)" against "(flat, BNL join)".
+ */
+export function traditionalFlavor(rows: Row[]): "mysql" | "mariadb" | undefined {
+  const extras = rows.map((r) => text(r["extra"]) ?? "").join("; ");
+  if (rows.some((r) => "r_rows" in r || "r_filtered" in r) || /\b(?:BNLH?|BKAH?) join\b|\(flat,|\(incremental,/.test(extras)) {
+    return "mariadb";
+  }
+  if (rows.some((r) => "partitions" in r) || /Block Nested Loop|hash join|Batched Key Access/.test(extras)) return "mysql";
+  return undefined;
+}
+
 /** "Using join buffer (hash join)" → what the JSON calls using_join_buffer or join_type. */
 function joinBuffer(extra: string): string | undefined {
   const m = /Using join buffer \(([^)]*)\)/i.exec(extra);
@@ -146,19 +160,54 @@ function tableObject(row: Row): Obj {
   return Object.fromEntries(Object.entries(table).filter(([, v]) => v !== undefined));
 }
 
-/** Rebuilds `{"query_block": ...}` from the rows. */
+/**
+ * Rebuilds `{"query_block": ...}` from the rows.
+ *
+ * Rows are grouped by `id` into query blocks. A UNION's blocks are named by
+ * its result row (`<union2,3>`; MySQL 8 gives that row an id of its own,
+ * older servers NULL). UNION ALL has no result row on MySQL 8, so a block
+ * marked UNION joins the closest block before it that isn't one. A union is
+ * placed wherever its first block would be: the top of the query, a derived
+ * table or a subquery.
+ */
 export function traditionalToQueryBlock(rows: Row[]): Obj {
+  const selectTypeOf = (row: Row | undefined) => (text(row?.["select_type"]) ?? "").toUpperCase();
   const blocks = new Map<number, Row[]>();
-  const unions: Row[] = [];
+  const resultRows: Row[] = [];
   for (const row of rows) {
     const id = number(row["id"]);
-    if (id === undefined) {
-      unions.push(row);
+    if (selectTypeOf(row) === "UNION RESULT" || id === undefined) {
+      resultRows.push(row);
       continue;
     }
     if (!blocks.has(id)) blocks.set(id, []);
     blocks.get(id)!.push(row);
   }
+  const ids = [...blocks.keys()].sort((a, b) => a - b);
+  const selectType = (id: number) => selectTypeOf(blocks.get(id)?.[0]);
+  const isUnionMember = (id: number) => /UNION/.test(selectType(id));
+
+  // Unions by their first block.
+  const unions = new Map<number, { members: number[]; row?: Row }>();
+  const grouped = new Set<number>();
+  for (const row of resultRows) {
+    const members = (/^<union([\d,]+)>$/.exec(text(row["table"]) ?? "")?.[1] ?? "")
+      .split(",")
+      .map(Number)
+      .filter((id) => blocks.has(id));
+    if (!members.length) continue;
+    unions.set(members[0], { members, row });
+    members.forEach((id) => grouped.add(id));
+  }
+  for (const id of ids) {
+    if (grouped.has(id) || !isUnionMember(id)) continue;
+    const head = ids.filter((other) => other < id && !isUnionMember(other)).at(-1);
+    if (head === undefined) continue;
+    if (!unions.has(head)) unions.set(head, { members: [head] });
+    unions.get(head)!.members.push(id);
+    grouped.add(head).add(id);
+  }
+
   const used = new Set<number>();
 
   const block = (id: number): Obj => {
@@ -168,7 +217,7 @@ export function traditionalToQueryBlock(rows: Row[]): Obj {
       const table = tableObject(row);
       const ref = /^<(derived|subquery)(\d+)>$/.exec(String(table["table_name"] ?? ""));
       if (ref && blocks.has(Number(ref[2])) && !used.has(Number(ref[2]))) {
-        table["materialized_from_subquery"] = { query_block: block(Number(ref[2])) };
+        table["materialized_from_subquery"] = { query_block: unit(Number(ref[2])) };
       }
       return { table };
     });
@@ -176,47 +225,38 @@ export function traditionalToQueryBlock(rows: Row[]): Obj {
     const extras = blockRows.map((r) => text(r["extra"]) ?? "").join("; ");
     if (/Using temporary/i.test(extras)) content = { temporary_table: content };
     if (/Using filesort/i.test(extras)) content = { filesort: content };
-    const selectType = (text(blockRows[0]?.["select_type"]) ?? "").toUpperCase();
     return {
       select_id: id,
-      ...(/UNION/.test(selectType) && selectType !== "UNION RESULT" ? { operation: "UNION" } : {}),
+      ...(isUnionMember(id) ? { operation: "UNION" } : {}),
       ...content,
     };
   };
 
-  const subqueryEntry = (id: number) => {
-    const selectType = (text(blocks.get(id)?.[0]?.["select_type"]) ?? "").toUpperCase();
-    return {
-      dependent: /DEPENDENT/.test(selectType) || undefined,
-      cacheable: /UNCACHEABLE/.test(selectType) ? false : undefined,
-      query_block: block(id),
-    };
-  };
+  /** A subquery's flags, from its select_type. */
+  const entry = (id: number, queryBlock: Obj): Obj => ({
+    dependent: /DEPENDENT/.test(selectType(id)) || undefined,
+    cacheable: /UNCACHEABLE/.test(selectType(id)) ? false : undefined,
+    query_block: queryBlock,
+  });
 
-  // A UNION's result row names the blocks it combines: <union1,2>.
-  const unionOf = (row: Row): Obj => {
-    const ids = (/^<union([\d,]+)>$/.exec(text(row["table"]) ?? "")?.[1] ?? "").split(",").map(Number).filter((id) => blocks.has(id));
+  /** The block that starts at `id`, or the union it begins. */
+  const unit = (id: number): Obj => {
+    const union = unions.get(id);
+    if (!union) return block(id);
+    union.members.forEach((member) => used.add(member));
     return {
       union_result: {
-        table_name: text(row["table"]),
-        access_type: text(row["type"]),
-        query_specifications: ids.map(subqueryEntry),
+        table_name: text(union.row?.["table"]),
+        access_type: text(union.row?.["type"]),
+        query_specifications: union.members.map((member) => entry(member, block(member))),
       },
     };
   };
 
-  const firstId = Math.min(...blocks.keys());
-  const selectType = (id: number) => (text(blocks.get(id)?.[0]?.["select_type"]) ?? "").toUpperCase();
-  // UNION ALL has no result row in MySQL 8: its blocks are marked UNION.
-  const unionAll = [...blocks.keys()].filter((id) => id !== firstId && /UNION/.test(selectType(id)));
-  let main: Obj;
-  if (unions.length) main = unionOf(unions[unions.length - 1]);
-  else if (unionAll.length) main = { union_result: { query_specifications: [firstId, ...unionAll].map(subqueryEntry) } };
-  else main = block(firstId);
-
+  const main = unit(ids[0]);
   // Subqueries nothing else refers to hang off the main query.
   const subqueries: Obj[] = [];
-  for (const id of blocks.keys()) if (!used.has(id)) subqueries.push(subqueryEntry(id));
+  for (const id of ids) if (!used.has(id)) subqueries.push(entry(id, unit(id)));
   if (subqueries.length) main["subqueries"] = subqueries;
   return { query_block: main };
 }

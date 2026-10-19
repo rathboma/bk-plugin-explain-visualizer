@@ -8,11 +8,22 @@ export function emptyStatement(statement: string, error?: string): StatementInfo
   return { statement, modifiesData: false, requestedOptions: {}, hasParameters: false, error };
 }
 
+/** The first text the server may read differently from the lexer, if any. */
+export function ambiguity(statements: SplitStatement[]): Token | undefined {
+  for (const statement of statements) {
+    const token = statement.tokens.find((t) => t.type === "ambiguous");
+    if (token) return token;
+  }
+  return undefined;
+}
+
 /**
  * The tokens of the only statement in `sql`, or a StatementInfo explaining
- * why there isn't exactly one.
+ * why there isn't exactly one, or why it can't be read with certainty.
  */
 export function onlyStatement(sql: string, statements: SplitStatement[]): Token[] | StatementInfo {
+  const unclear = ambiguity(statements);
+  if (unclear) return emptyStatement(sql.trim(), unclear.reason);
   if (statements.length === 0) return emptyStatement("", "No SQL statement to explain.");
   if (statements.length > 1) {
     return emptyStatement(

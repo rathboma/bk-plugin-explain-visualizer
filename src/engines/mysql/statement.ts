@@ -1,17 +1,19 @@
 import type { StatementInfo } from "../types";
 import { splitStatements, type LexerDialect, type Token } from "../shared/lexer";
-import { emptyStatement, firstKeyword, onlyStatement, parameterError, sourceOf, word } from "../shared/statement";
+import { ambiguity, emptyStatement, firstKeyword, onlyStatement, parameterError, sourceOf, word } from "../shared/statement";
 import type { MysqlServerInfo } from "./server";
 
 /**
- * MySQL's and MariaDB's scanner rules: `#` comments, `-- ` comments that
- * need a space, backslash escapes, and `/*! ... *\/` comments whose contents
- * the server runs.
+ * MySQL's and MariaDB's scanner rules (sql_lex.cc): `#` and `-- ` comments
+ * that end only at a line feed, `--` that needs a space or control character
+ * after it, backslash escapes, and `/*! ... *\/` comments whose contents the
+ * server runs.
  */
 export function mysqlDialect(server?: MysqlServerInfo): LexerDialect {
   const backslash = !server?.noBackslashEscapes;
   return {
     dashComments: "followed-by-space",
+    lineCommentEnd: "lf",
     hashComments: true,
     executableComments: true,
     quotes: [
@@ -107,14 +109,19 @@ export function inspectStatement(sql: string, server?: MysqlServerInfo): Stateme
   if (!Array.isArray(tokens)) return tokens;
   let writesInAnyMode = false;
   for (const mode of MODES) {
-    const other = onlyStatement(sql, splitStatements(sql, mysqlDialect({ flavor: "mysql", ...mode })));
-    if (!Array.isArray(other)) {
+    const statements = splitStatements(sql, mysqlDialect({ flavor: "mysql", ...mode }));
+    const unclear = ambiguity(statements);
+    if (unclear) return emptyStatement(sql.trim(), unclear.reason);
+    if (statements.length !== 1) {
       return emptyStatement(
         sql.trim(),
         "This text reads as more than one statement under some SQL modes (NO_BACKSLASH_ESCAPES, ANSI_QUOTES), so it can't be explained safely. Write a quote inside a string by doubling it ('') rather than with a backslash."
       );
     }
-    writesInAnyMode ||= writes(other);
+    // Only the statement counts: EXPLAIN ... INTO @variable doesn't write.
+    const other = statements[0].tokens;
+    const start = readExplainPrefix(other, {});
+    writesInAnyMode ||= writes(other.slice(typeof start === "number" ? start : 0));
   }
 
   const requestedOptions: StatementInfo["requestedOptions"] = {};

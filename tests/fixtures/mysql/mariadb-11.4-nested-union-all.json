@@ -1,0 +1,209 @@
+{
+  "name": "mariadb-11.4-nested-union-all",
+  "flavor": "mariadb",
+  "serverVersion": "11.4.13-MariaDB-ubu2404",
+  "version": 110413,
+  "modifies": false,
+  "query": "SELECT id FROM orders WHERE id < 3\nUNION\nSELECT c.id FROM customers c\nJOIN (SELECT customer_id FROM orders WHERE status = 'pending' UNION ALL SELECT 1) d ON d.customer_id = c.id",
+  "outputs": {
+    "json": "{\n  \"query_block\": {\n    \"union_result\": {\n      \"table_name\": \"<union1,2>\",\n      \"access_type\": \"ALL\",\n      \"query_specifications\": [\n        {\n          \"query_block\": {\n            \"select_id\": 1,\n            \"cost\": 0.00282078,\n            \"nested_loop\": [\n              {\n                \"table\": {\n                  \"table_name\": \"orders\",\n                  \"access_type\": \"range\",\n                  \"possible_keys\": [\"PRIMARY\"],\n                  \"key\": \"PRIMARY\",\n                  \"key_length\": \"4\",\n                  \"used_key_parts\": [\"id\"],\n                  \"loops\": 1,\n                  \"rows\": 2,\n                  \"cost\": 0.00282078,\n                  \"filtered\": 100,\n                  \"attached_condition\": \"orders.`id` < 3\"\n                }\n              }\n            ]\n          }\n        },\n        {\n          \"query_block\": {\n            \"select_id\": 2,\n            \"operation\": \"UNION\",\n            \"cost\": 28.71428745,\n            \"nested_loop\": [\n              {\n                \"table\": {\n                  \"table_name\": \"c\",\n                  \"access_type\": \"index\",\n                  \"possible_keys\": [\"PRIMARY\"],\n                  \"key\": \"customers_country_idx\",\n                  \"key_length\": \"10\",\n                  \"used_key_parts\": [\"country\"],\n                  \"loops\": 1,\n                  \"rows\": 20134,\n                  \"cost\": 2.97880731,\n                  \"filtered\": 100,\n                  \"using_index\": true\n                }\n              },\n              {\n                \"table\": {\n                  \"table_name\": \"<derived3>\",\n                  \"access_type\": \"ref\",\n                  \"possible_keys\": [\"key0\"],\n                  \"key\": \"key0\",\n                  \"key_length\": \"4\",\n                  \"used_key_parts\": [\"customer_id\"],\n                  \"ref\": [\"shop.c.id\"],\n                  \"loops\": 20134,\n                  \"rows\": 10,\n                  \"cost\": 25.73548014,\n                  \"filtered\": 100,\n                  \"materialized\": {\n                    \"query_block\": {\n                      \"union_result\": {\n                        \"query_specifications\": [\n                          {\n                            \"query_block\": {\n                              \"select_id\": 3,\n                              \"cost\": 33.0979732,\n                              \"nested_loop\": [\n                                {\n                                  \"table\": {\n                                    \"table_name\": \"orders\",\n                                    \"access_type\": \"ALL\",\n                                    \"loops\": 1,\n                                    \"rows\": 199800,\n                                    \"cost\": 33.0979732,\n                                    \"filtered\": 100,\n                                    \"attached_condition\": \"orders.`status` = 'pending'\"\n                                  }\n                                }\n                              ]\n                            }\n                          },\n                          {\n                            \"query_block\": {\n                              \"select_id\": 4,\n                              \"operation\": \"UNION\",\n                              \"table\": {\n                                \"message\": \"No tables used\"\n                              }\n                            }\n                          }\n                        ]\n                      }\n                    }\n                  }\n                }\n              }\n            ]\n          }\n        }\n      ]\n    }\n  }\n}",
+    "jsonAnalyze": "{\n  \"query_optimization\": {\n    \"r_total_time_ms\": 0.131018295\n  },\n  \"query_block\": {\n    \"union_result\": {\n      \"table_name\": \"<union1,2>\",\n      \"access_type\": \"ALL\",\n      \"r_loops\": 1,\n      \"r_rows\": 1602,\n      \"query_specifications\": [\n        {\n          \"query_block\": {\n            \"select_id\": 1,\n            \"cost\": 0.00282078,\n            \"r_loops\": 1,\n            \"r_total_time_ms\": 0.164503964,\n            \"nested_loop\": [\n              {\n                \"table\": {\n                  \"table_name\": \"orders\",\n                  \"access_type\": \"range\",\n                  \"possible_keys\": [\"PRIMARY\"],\n                  \"key\": \"PRIMARY\",\n                  \"key_length\": \"4\",\n                  \"used_key_parts\": [\"id\"],\n                  \"loops\": 1,\n                  \"r_loops\": 1,\n                  \"rows\": 2,\n                  \"r_rows\": 2,\n                  \"cost\": 0.00282078,\n                  \"r_table_time_ms\": 0.00961483,\n                  \"r_other_time_ms\": 0.069517396,\n                  \"r_engine_stats\": {\n                    \"pages_accessed\": 4\n                  },\n                  \"filtered\": 100,\n                  \"r_filtered\": 100,\n                  \"attached_condition\": \"orders.`id` < 3\"\n                }\n              }\n            ]\n          }\n        },\n        {\n          \"query_block\": {\n            \"select_id\": 2,\n            \"operation\": \"UNION\",\n            \"cost\": 28.7143197,\n            \"r_loops\": 1,\n            \"r_total_time_ms\": 53.33223218,\n            \"nested_loop\": [\n              {\n                \"table\": {\n                  \"table_name\": \"c\",\n                  \"access_type\": \"index\",\n                  \"possible_keys\": [\"PRIMARY\"],\n                  \"key\": \"customers_country_idx\",\n                  \"key_length\": \"10\",\n                  \"used_key_parts\": [\"country\"],\n                  \"loops\": 1,\n                  \"r_loops\": 1,\n                  \"rows\": 20134,\n                  \"r_rows\": 20000,\n                  \"cost\": 2.97880731,\n                  \"r_table_time_ms\": 2.908978926,\n                  \"r_other_time_ms\": 1.211567889,\n                  \"r_engine_stats\": {\n                    \"pages_accessed\": 17\n                  },\n                  \"filtered\": 100,\n                  \"r_filtered\": 100,\n                  \"using_index\": true\n                }\n              },\n              {\n                \"table\": {\n                  \"table_name\": \"<derived3>\",\n                  \"access_type\": \"ref\",\n                  \"possible_keys\": [\"key0\"],\n                  \"key\": \"key0\",\n                  \"key_length\": \"4\",\n                  \"used_key_parts\": [\"customer_id\"],\n                  \"ref\": [\"shop.c.id\"],\n                  \"loops\": 20134,\n                  \"r_loops\": 20000,\n                  \"rows\": 10,\n                  \"r_rows\": 0.80005,\n                  \"cost\": 25.73551239,\n                  \"r_table_time_ms\": 4.52712112,\n                  \"r_other_time_ms\": 5.25316973,\n                  \"filtered\": 100,\n                  \"r_filtered\": 100,\n                  \"materialized\": {\n                    \"query_block\": {\n                      \"union_result\": {\n                        \"query_specifications\": [\n                          {\n                            \"query_block\": {\n                              \"select_id\": 3,\n                              \"cost\": 33.0979732,\n                              \"r_loops\": 1,\n                              \"r_total_time_ms\": 42.4913962,\n                              \"nested_loop\": [\n                                {\n                                  \"table\": {\n                                    \"table_name\": \"orders\",\n                                    \"access_type\": \"ALL\",\n                                    \"loops\": 1,\n                                    \"r_loops\": 1,\n                                    \"rows\": 199800,\n                                    \"r_rows\": 200000,\n                                    \"cost\": 33.0979732,\n                                    \"r_table_time_ms\": 25.84744401,\n                                    \"r_other_time_ms\": 13.5595007,\n                                    \"r_engine_stats\": {\n                                      \"pages_accessed\": 601\n                                    },\n                                    \"filtered\": 100,\n                                    \"r_filtered\": 8,\n                                    \"attached_condition\": \"orders.`status` = 'pending'\"\n                                  }\n                                }\n                              ]\n                            }\n                          },\n                          {\n                            \"query_block\": {\n                              \"select_id\": 4,\n                              \"operation\": \"UNION\",\n                              \"table\": {\n                                \"message\": \"No tables used\"\n                              }\n                            }\n                          }\n                        ]\n                      }\n                    }\n                  }\n                }\n              }\n            ]\n          }\n        }\n      ]\n    }\n  }\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "PRIMARY",
+          "orders",
+          "range",
+          "PRIMARY",
+          "PRIMARY",
+          "4",
+          null,
+          "2",
+          "Using where"
+        ],
+        [
+          2,
+          "UNION",
+          "c",
+          "index",
+          "PRIMARY",
+          "customers_country_idx",
+          "10",
+          null,
+          "20134",
+          "Using index"
+        ],
+        [
+          2,
+          "UNION",
+          "<derived3>",
+          "ref",
+          "key0",
+          "key0",
+          "4",
+          "shop.c.id",
+          "10",
+          ""
+        ],
+        [
+          3,
+          "DERIVED",
+          "orders",
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          "199800",
+          "Using where"
+        ],
+        [
+          4,
+          "UNION",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "No tables used"
+        ],
+        [
+          null,
+          "UNION RESULT",
+          "<union1,2>",
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          null,
+          ""
+        ]
+      ]
+    },
+    "traditionalAnalyze": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "r_rows",
+        "filtered",
+        "r_filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "PRIMARY",
+          "orders",
+          "range",
+          "PRIMARY",
+          "PRIMARY",
+          "4",
+          null,
+          "2",
+          "2.00",
+          100,
+          100,
+          "Using where"
+        ],
+        [
+          2,
+          "UNION",
+          "c",
+          "index",
+          "PRIMARY",
+          "customers_country_idx",
+          "10",
+          null,
+          "20134",
+          "20000.00",
+          100,
+          100,
+          "Using index"
+        ],
+        [
+          2,
+          "UNION",
+          "<derived3>",
+          "ref",
+          "key0",
+          "key0",
+          "4",
+          "shop.c.id",
+          "10",
+          "0.80",
+          100,
+          100,
+          ""
+        ],
+        [
+          3,
+          "DERIVED",
+          "orders",
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          "199800",
+          "200000.00",
+          100,
+          8,
+          "Using where"
+        ],
+        [
+          4,
+          "UNION",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "No tables used"
+        ],
+        [
+          null,
+          "UNION RESULT",
+          "<union1,2>",
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "1602.00",
+          null,
+          null,
+          ""
+        ]
+      ]
+    }
+  }
+}

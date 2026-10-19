@@ -1,5 +1,5 @@
 import type { ExplainRequest, ServerInfo, StatementInfo } from "../types";
-import { emptyStatement, word } from "../shared/statement";
+import { emptyStatement, onlyStatement, word } from "../shared/statement";
 import { splitStatements, type Token } from "./lexer";
 
 /** Statements that only read data, as long as they contain no DML. */
@@ -83,18 +83,9 @@ function containsDml(tokens: Token[]): boolean {
 
 /** Classifies a statement for EXPLAIN. Never throws. */
 export function inspectStatement(sql: string, server?: PostgresServerInfo): StatementInfo {
-  const statements = splitStatements(sql, { backslashQuotes: server?.standardConformingStrings === false });
-  if (statements.length === 0) {
-    return emptyInfo("", "No SQL statement to explain.");
-  }
-  if (statements.length > 1) {
-    return emptyInfo(
-      sql.trim(),
-      `Found ${statements.length} statements. Only one statement can be explained at a time.`
-    );
-  }
+  const tokens = onlyStatement(sql, splitStatements(sql, { backslashQuotes: server?.standardConformingStrings === false }));
+  if (!Array.isArray(tokens)) return tokens;
 
-  const [{ tokens }] = statements;
   const requestedOptions: StatementInfo["requestedOptions"] = {};
   let start = 0;
   if (word(tokens[0]) === "EXPLAIN") {

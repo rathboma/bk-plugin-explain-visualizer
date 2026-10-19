@@ -39,7 +39,7 @@ describe("reading MySQL statements", () => {
     expect(inspectStatement("EXPLAIN ANALYZE FORMAT=TREE SELECT 1").requestedOptions).toEqual({ analyze: true });
     expect(inspectStatement("DESCRIBE SELECT 1").statement).toBe("SELECT 1");
     expect(inspectStatement("EXPLAIN EXTENDED SELECT 1").statement).toBe("SELECT 1");
-    expect(inspectStatement("EXPLAIN FORMAT=JSON INTO @plan SELECT 1").statement).toBe("SELECT 1");
+    expect(inspectStatement("EXPLAIN FORMAT=JSON INTO @plan SELECT 1")).toMatchObject({ statement: "SELECT 1", modifiesData: false });
     // MariaDB's ANALYZE runs the statement.
     expect(inspectStatement("ANALYZE FORMAT=JSON SELECT 1")).toMatchObject({ statement: "SELECT 1", requestedOptions: { analyze: true } });
     // ANALYZE TABLE is a statement of its own.
@@ -65,8 +65,6 @@ describe("reading MySQL statements", () => {
     it.each([
       // The contents of /*! ... */ run on MySQL: a semicolon there is a second statement.
       ["SELECT 1 /*! ; DROP TABLE t */", 2],
-      ["SELECT 1 /*!50700 ; DROP TABLE t */", 2],
-      ["SELECT 1 /*M!100100 ; DROP TABLE t */", 2],
       // Optimizer hints and plain comments are comments.
       ["SELECT /*+ NO_INDEX(t) */ 1 /* ; */", 1],
       ["SELECT 1 # ; DROP TABLE t", 1],
@@ -83,6 +81,38 @@ describe("reading MySQL statements", () => {
       if (count === 1) expect(info.error).toBeUndefined();
       else if (count === "mode") expect(info.error).toMatch(/under some SQL modes/);
       else expect(info.error).toMatch(new RegExp(`Found ${count} statements`));
+    });
+
+    it("ends -- and # comments only at a line feed, as MySQL does", () => {
+      // A carriage return doesn't end the comment on MySQL; other tools end it
+      // there, so a stray one is refused.
+      const hidden = "SELECT 1 -- x\r'\n; DELETE FROM t; -- '";
+      expect(inspectStatement(hidden, mysql84).error).toMatch(/carriage return/);
+      expect(inspectStatement("SELECT 1 # x\r'\n; DELETE FROM t; -- '", mysql84).error).toMatch(/carriage return/);
+      // Windows line breaks are fine.
+      expect(inspectStatement("SELECT 1 -- note\r\nFROM t\r\n", mysql84)).toMatchObject({ error: undefined, statement: "SELECT 1 -- note\r\nFROM t" });
+      // -- followed by DEL (a control character) starts a comment too.
+      expect(inspectStatement("SELECT 1 --\x7f'\n; DELETE FROM t; -- '", mysql84).error).toMatch(/Found 2 statements/);
+      // A character some character sets count as a space: unclear.
+      expect(inspectStatement("SELECT 1 --\u00a0x", mysql84).error).toMatch(/Add a space after --/);
+      expect(inspectStatement("SELECT 1 FROM t WHERE a = '\0'", mysql84).error).toMatch(/NUL/);
+    });
+
+    it("refuses comments whose contents only some servers run", () => {
+      // MySQL skips the text when its version is lower than the comment's.
+      expect(inspectStatement("SELECT 1 /*!99999 ' */ ; DELETE FROM t; -- ' */", mysql84).error).toMatch(/depends on its version/);
+      expect(inspectStatement("SELECT 1 /*!50700 STRAIGHT_JOIN */ 2", mysql84).error).toMatch(/depends on its version/);
+      // Only MariaDB runs /*M! ... */.
+      expect(inspectStatement("SELECT 1 /*M! ' */ ; DELETE FROM t; -- ' */", mysql84).error).toMatch(/MariaDB runs/);
+      expect(inspectStatement("SELECT 1 /*M!100100 , 2 */", mysql84).error).toMatch(/MariaDB runs/);
+      // A comment inside one, or one never closed.
+      expect(inspectStatement("SELECT 1 /*! , 2 /* x */ */", mysql84).error).toMatch(/comment inside/);
+      expect(inspectStatement("SELECT 1 /*! , 2", mysql84).error).toMatch(/never closed/);
+    });
+
+    it("keeps the delimiters of a comment that runs in the statement", () => {
+      expect(inspectStatement("SELECT 1 /*! , 2 */;", mysql84)).toMatchObject({ statement: "SELECT 1 /*! , 2 */", error: undefined });
+      expect(inspectStatement("SELECT /*! STRAIGHT_JOIN */ * FROM t", mysql84).statement).toBe("SELECT /*! STRAIGHT_JOIN */ * FROM t");
     });
 
     it("refuses text that reads as several statements under any SQL mode", () => {
