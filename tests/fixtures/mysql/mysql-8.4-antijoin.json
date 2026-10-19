@@ -1,0 +1,75 @@
+{
+  "name": "mysql-8.4-antijoin",
+  "flavor": "mysql",
+  "serverVersion": "8.4.11",
+  "version": 80411,
+  "modifies": false,
+  "query": "SELECT c.id, c.email FROM customers c\nWHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id AND o.status = 'cancelled')\nLIMIT 50",
+  "outputs": {
+    "tree": "-> Limit: 50 row(s)  (cost=399e+6 rows=50)\n    -> Nested loop antijoin  (cost=399e+6 rows=3.99e+9)\n        -> Table scan on c  (cost=2019 rows=19951)\n        -> Single-row index lookup on <subquery2> using <auto_distinct_key> (customer_id=c.id)  (cost=40112..40112 rows=1)\n            -> Materialize with deduplication  (cost=40112..40112 rows=199800)\n                -> Filter: (o.customer_id is not null)  (cost=20132 rows=199800)\n                    -> Filter: (o.`status` = 'cancelled')  (cost=20132 rows=199800)\n                        -> Table scan on o  (cost=20132 rows=199800)\n",
+    "treeAnalyze": "-> Limit: 50 row(s)  (cost=399e+6 rows=50) (actual time=43.5..43.5 rows=50 loops=1)\n    -> Nested loop antijoin  (cost=399e+6 rows=3.99e+9) (actual time=43.5..43.5 rows=50 loops=1)\n        -> Table scan on c  (cost=2019 rows=19951) (actual time=0.0855..0.0945 rows=52 loops=1)\n        -> Single-row index lookup on <subquery2> using <auto_distinct_key> (customer_id=c.id)  (cost=40112..40112 rows=1) (actual time=0.835..0.835 rows=0.0385 loops=52)\n            -> Materialize with deduplication  (cost=40112..40112 rows=199800) (actual time=43.4..43.4 rows=400 loops=1)\n                -> Filter: (o.customer_id is not null)  (cost=20132 rows=199800) (actual time=0.115..42.7 rows=4000 loops=1)\n                    -> Filter: (o.`status` = 'cancelled')  (cost=20132 rows=199800) (actual time=0.114..42.4 rows=4000 loops=1)\n                        -> Table scan on o  (cost=20132 rows=199800) (actual time=0.105..28.5 rows=200000 loops=1)\n",
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"44127.70\"\n    },\n    \"nested_loop\": [\n      {\n        \"table\": {\n          \"table_name\": \"c\",\n          \"access_type\": \"ALL\",\n          \"rows_examined_per_scan\": 19951,\n          \"rows_produced_per_join\": 19951,\n          \"filtered\": \"100.00\",\n          \"cost_info\": {\n            \"read_cost\": \"24.25\",\n            \"eval_cost\": \"1995.10\",\n            \"prefix_cost\": \"2019.35\",\n            \"data_read_per_join\": \"8M\"\n          },\n          \"used_columns\": [\n            \"id\",\n            \"email\"\n          ]\n        }\n      },\n      {\n        \"table\": {\n          \"table_name\": \"<subquery2>\",\n          \"access_type\": \"eq_ref\",\n          \"key\": \"<auto_distinct_key>\",\n          \"key_length\": \"5\",\n          \"ref\": [\n            \"shop.c.id\"\n          ],\n          \"rows_examined_per_scan\": 1,\n          \"not_exists\": true,\n          \"attached_condition\": \"<if>(is_not_null_compl(<subquery2>), <if>(found_match(<subquery2>), false, true), true)\",\n          \"materialized_from_subquery\": {\n            \"using_temporary_table\": true,\n            \"query_block\": {\n              \"table\": {\n                \"table_name\": \"o\",\n                \"access_type\": \"ALL\",\n                \"possible_keys\": [\n                  \"orders_customer_id_idx\"\n                ],\n                \"rows_examined_per_scan\": 199800,\n                \"rows_produced_per_join\": 199800,\n                \"filtered\": \"100.00\",\n                \"cost_info\": {\n                  \"read_cost\": \"152.25\",\n                  \"eval_cost\": \"19980.00\",\n                  \"prefix_cost\": \"20132.25\",\n                  \"data_read_per_join\": \"19M\"\n                },\n                \"used_columns\": [\n                  \"customer_id\",\n                  \"status\"\n                ],\n                \"attached_condition\": \"(`shop`.`o`.`status` = 'cancelled')\"\n              }\n            }\n          }\n        }\n      }\n    ]\n  }\n}",
+    "jsonV2": "{\n  \"limit\": 50,\n  \"query\": \"/* select#1 */ select `c`.`id` AS `id`,`c`.`email` AS `email` from `shop`.`customers` `c` anti join (`shop`.`orders` `o`) on(((`<subquery2>`.`customer_id` = `c`.`id`) and (`o`.`status` = 'cancelled'))) where true limit 50\",\n  \"inputs\": [\n    {\n      \"inputs\": [\n        {\n          \"alias\": \"c\",\n          \"operation\": \"Table scan on c\",\n          \"table_name\": \"customers\",\n          \"access_type\": \"table\",\n          \"schema_name\": \"shop\",\n          \"used_columns\": [\n            \"id\",\n            \"email\"\n          ],\n          \"estimated_rows\": 19951.0,\n          \"estimated_total_cost\": 2019.3500000000001\n        },\n        {\n          \"inputs\": [\n            {\n              \"inputs\": [\n                {\n                  \"inputs\": [\n                    {\n                      \"inputs\": [\n                        {\n                          \"alias\": \"o\",\n                          \"operation\": \"Table scan on o\",\n                          \"table_name\": \"orders\",\n                          \"access_type\": \"table\",\n                          \"schema_name\": \"shop\",\n                          \"used_columns\": [\n                            \"customer_id\",\n                            \"status\"\n                          ],\n                          \"estimated_rows\": 199800.0,\n                          \"estimated_total_cost\": 20132.25\n                        }\n                      ],\n                      \"condition\": \"(o.`status` = 'cancelled')\",\n                      \"operation\": \"Filter: (o.`status` = 'cancelled')\",\n                      \"access_type\": \"filter\",\n                      \"estimated_rows\": 199800.0,\n                      \"estimated_total_cost\": 20132.25\n                    }\n                  ],\n                  \"condition\": \"(o.customer_id is not null)\",\n                  \"operation\": \"Filter: (o.customer_id is not null)\",\n                  \"access_type\": \"filter\",\n                  \"estimated_rows\": 199800.0,\n                  \"estimated_total_cost\": 20132.25\n                }\n              ],\n              \"operation\": \"Materialize with deduplication\",\n              \"access_type\": \"materialize\",\n              \"deduplication\": true,\n              \"estimated_rows\": 199800.0,\n              \"estimated_total_cost\": 40112.25,\n              \"estimated_first_row_cost\": 40112.25\n            }\n          ],\n          \"covering\": false,\n          \"operation\": \"Single-row index lookup on <subquery2> using <auto_distinct_key> (customer_id=c.id)\",\n          \"index_name\": \"<auto_distinct_key>\",\n          \"table_name\": \"<subquery2>\",\n          \"access_type\": \"index\",\n          \"used_columns\": [\n            \"customer_id\"\n          ],\n          \"estimated_rows\": 1.0,\n          \"lookup_condition\": \"customer_id=c.id\",\n          \"index_access_type\": \"index_lookup\",\n          \"estimated_total_cost\": 40112.25998598599,\n          \"estimated_first_row_cost\": 40112.25998598599\n        }\n      ],\n      \"join_type\": \"antijoin\",\n      \"operation\": \"Nested loop antijoin\",\n      \"access_type\": \"join\",\n      \"estimated_rows\": 3986209800.0,\n      \"join_algorithm\": \"nested_loop\",\n      \"estimated_total_cost\": 398624994.45\n    }\n  ],\n  \"operation\": \"Limit: 50 row(s)\",\n  \"query_type\": \"select\",\n  \"access_type\": \"limit\",\n  \"limit_offset\": 0,\n  \"estimated_rows\": 50.0,\n  \"estimated_total_cost\": 398624994.45\n}",
+    "jsonV2Analyze": "{\n  \"limit\": 50,\n  \"query\": \"/* select#1 */ select `c`.`id` AS `id`,`c`.`email` AS `email` from `shop`.`customers` `c` anti join (`shop`.`orders` `o`) on(((`<subquery2>`.`customer_id` = `c`.`id`) and (`o`.`status` = 'cancelled'))) where true limit 50\",\n  \"inputs\": [\n    {\n      \"inputs\": [\n        {\n          \"alias\": \"c\",\n          \"operation\": \"Table scan on c\",\n          \"table_name\": \"customers\",\n          \"access_type\": \"table\",\n          \"actual_rows\": 52.0,\n          \"schema_name\": \"shop\",\n          \"actual_loops\": 1,\n          \"used_columns\": [\n            \"id\",\n            \"email\"\n          ],\n          \"estimated_rows\": 19951.0,\n          \"actual_last_row_ms\": 0.083136,\n          \"actual_first_row_ms\": 0.073851,\n          \"estimated_total_cost\": 2019.3500000000001\n        },\n        {\n          \"inputs\": [\n            {\n              \"inputs\": [\n                {\n                  \"inputs\": [\n                    {\n                      \"inputs\": [\n                        {\n                          \"alias\": \"o\",\n                          \"operation\": \"Table scan on o\",\n                          \"table_name\": \"orders\",\n                          \"access_type\": \"table\",\n                          \"actual_rows\": 200000.0,\n                          \"schema_name\": \"shop\",\n                          \"actual_loops\": 1,\n                          \"used_columns\": [\n                            \"customer_id\",\n                            \"status\"\n                          ],\n                          \"estimated_rows\": 199800.0,\n                          \"actual_last_row_ms\": 25.777945,\n                          \"actual_first_row_ms\": 0.092017,\n                          \"estimated_total_cost\": 20132.25\n                        }\n                      ],\n                      \"condition\": \"(o.`status` = 'cancelled')\",\n                      \"operation\": \"Filter: (o.`status` = 'cancelled')\",\n                      \"access_type\": \"filter\",\n                      \"actual_rows\": 4000.0,\n                      \"actual_loops\": 1,\n                      \"estimated_rows\": 199800.0,\n                      \"actual_last_row_ms\": 38.587715,\n                      \"actual_first_row_ms\": 0.099968,\n                      \"estimated_total_cost\": 20132.25\n                    }\n                  ],\n                  \"condition\": \"(o.customer_id is not null)\",\n                  \"operation\": \"Filter: (o.customer_id is not null)\",\n                  \"access_type\": \"filter\",\n                  \"actual_rows\": 4000.0,\n                  \"actual_loops\": 1,\n                  \"estimated_rows\": 199800.0,\n                  \"actual_last_row_ms\": 38.930081,\n                  \"actual_first_row_ms\": 0.10043200000000001,\n                  \"estimated_total_cost\": 20132.25\n                }\n              ],\n              \"operation\": \"Materialize with deduplication\",\n              \"access_type\": \"materialize\",\n              \"actual_rows\": 400.0,\n              \"actual_loops\": 1,\n              \"deduplication\": true,\n              \"estimated_rows\": 199800.0,\n              \"actual_last_row_ms\": 39.605383,\n              \"actual_first_row_ms\": 39.605383,\n              \"estimated_total_cost\": 40112.25,\n              \"estimated_first_row_cost\": 40112.25\n            }\n          ],\n          \"covering\": false,\n          \"operation\": \"Single-row index lookup on <subquery2> using <auto_distinct_key> (customer_id=c.id)\",\n          \"index_name\": \"<auto_distinct_key>\",\n          \"table_name\": \"<subquery2>\",\n          \"access_type\": \"index\",\n          \"actual_rows\": 0.038461538461538464,\n          \"actual_loops\": 52,\n          \"used_columns\": [\n            \"customer_id\"\n          ],\n          \"estimated_rows\": 1.0,\n          \"lookup_condition\": \"customer_id=c.id\",\n          \"index_access_type\": \"index_lookup\",\n          \"actual_last_row_ms\": 0.7620054038461538,\n          \"actual_first_row_ms\": 0.7620054038461538,\n          \"estimated_total_cost\": 40112.25998598599,\n          \"estimated_first_row_cost\": 40112.25998598599\n        }\n      ],\n      \"join_type\": \"antijoin\",\n      \"operation\": \"Nested loop antijoin\",\n      \"access_type\": \"join\",\n      \"actual_rows\": 50.0,\n      \"actual_loops\": 1,\n      \"estimated_rows\": 3986209800.0,\n      \"join_algorithm\": \"nested_loop\",\n      \"actual_last_row_ms\": 39.717258,\n      \"actual_first_row_ms\": 39.688676,\n      \"estimated_total_cost\": 398624994.45\n    }\n  ],\n  \"operation\": \"Limit: 50 row(s)\",\n  \"query_type\": \"select\",\n  \"access_type\": \"limit\",\n  \"actual_rows\": 50.0,\n  \"actual_loops\": 1,\n  \"limit_offset\": 0,\n  \"estimated_rows\": 50.0,\n  \"actual_last_row_ms\": 39.721595,\n  \"actual_first_row_ms\": 39.689668999999995,\n  \"estimated_total_cost\": 398624994.45\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "SIMPLE",
+          "c",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          19951,
+          100,
+          null
+        ],
+        [
+          1,
+          "SIMPLE",
+          "<subquery2>",
+          null,
+          "eq_ref",
+          "<auto_distinct_key>",
+          "<auto_distinct_key>",
+          "5",
+          "shop.c.id",
+          1,
+          100,
+          "Using where; Not exists"
+        ],
+        [
+          2,
+          "MATERIALIZED",
+          "o",
+          null,
+          "ALL",
+          "orders_customer_id_idx",
+          null,
+          null,
+          null,
+          199800,
+          100,
+          "Using where"
+        ]
+      ]
+    }
+  }
+}

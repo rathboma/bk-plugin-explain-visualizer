@@ -1,0 +1,32 @@
+{
+  "name": "sqlite-3.16-join-aggregate",
+  "sqliteVersion": "3.16.2",
+  "modifies": false,
+  "query": "SELECT c.country, count(*) AS orders, sum(o.total) AS revenue\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nWHERE o.status = 'pending'\nGROUP BY c.country\nORDER BY revenue DESC",
+  "columns": [
+    "selectid",
+    "order",
+    "from",
+    "detail"
+  ],
+  "rows": [
+    [
+      0,
+      0,
+      0,
+      "SCAN TABLE customers AS c USING COVERING INDEX customers_country_idx"
+    ],
+    [
+      0,
+      1,
+      1,
+      "SEARCH TABLE orders AS o USING INDEX orders_customer_id_idx (customer_id=?)"
+    ],
+    [
+      0,
+      0,
+      0,
+      "USE TEMP B-TREE FOR ORDER BY"
+    ]
+  ]
+}

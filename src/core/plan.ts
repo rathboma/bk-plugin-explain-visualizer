@@ -6,9 +6,9 @@
  * a new database means writing an adapter, not touching components.
  *
  * All metrics are optional because engines expose very different data:
- * PostgreSQL gives costs, rows and timings; SQLite's EXPLAIN QUERY PLAN only
- * gives a tree of text details; SQL Server gives per-operator costs and actual
- * row counts, and so on.
+ * PostgreSQL and MySQL give costs, rows and timings; MariaDB times each
+ * table rather than each step; SQLite's EXPLAIN QUERY PLAN only gives a tree
+ * of text details, and so on.
  */
 
 /** Connection types as reported by Beekeeper Studio's `getConnectionInfo()`. */
@@ -24,6 +24,7 @@ export type NodeKind =
   | "join"
   | "aggregate"
   | "sort"
+  | "filter" // a filter that is its own step (MySQL), not part of a scan
   | "limit"
   | "materialize" // hash, materialize, memoize, spool, temp b-tree
   | "set" // append, union, intersect, except
@@ -77,8 +78,13 @@ export interface Insight {
 export interface PlanNode {
   /** Sequential id in pre-order, starting at 0 for the root. */
   id: number;
-  /** Operator name, e.g. "Seq Scan", "Hash Join", "SCAN orders". */
+  /** Operator name, e.g. "Seq Scan", "Hash Join", "Table scan". */
   operation: string;
+  /**
+   * The step as the database prints it, when that reads better than the
+   * operation and target together: a line of MySQL's tree, SQLite's detail.
+   */
+  label?: string;
   kind: NodeKind;
   /** Relation the node reads from or writes to, e.g. "public.orders o". */
   target?: string;

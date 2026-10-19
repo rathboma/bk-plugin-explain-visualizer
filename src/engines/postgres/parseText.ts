@@ -42,6 +42,8 @@ export function cleanPlanText(input: string): string[] {
 export function looksLikeTextPlan(input: string): boolean {
   const lines = cleanPlanText(input);
   if (!lines.length) return false;
+  // MySQL's tree format starts with "-> "; PostgreSQL's root line has no arrow.
+  if (/^\s*(?:EXPLAIN:\s*)?->/.test(lines[0])) return false;
   return lines.some((l) => COST.test(l) || ACTUAL.test(l) || /^\s*->\s/.test(l));
 }
 

@@ -1,0 +1,57 @@
+{
+  "name": "mysql-5.7-antijoin",
+  "flavor": "mysql",
+  "serverVersion": "5.7.44",
+  "version": 50744,
+  "modifies": false,
+  "query": "SELECT c.id, c.email FROM customers c\nWHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id AND o.status = 'cancelled')\nLIMIT 50",
+  "outputs": {
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"4023.60\"\n    },\n    \"table\": {\n      \"table_name\": \"c\",\n      \"access_type\": \"ALL\",\n      \"rows_examined_per_scan\": 19633,\n      \"rows_produced_per_join\": 19633,\n      \"filtered\": \"100.00\",\n      \"cost_info\": {\n        \"read_cost\": \"97.00\",\n        \"eval_cost\": \"3926.60\",\n        \"prefix_cost\": \"4023.60\",\n        \"data_read_per_join\": \"2M\"\n      },\n      \"used_columns\": [\n        \"id\",\n        \"email\"\n      ],\n      \"attached_condition\": \"(not(exists(/* select#2 */ select 1 from `shop`.`orders` `o` where ((`shop`.`o`.`status` = 'cancelled') and (`shop`.`o`.`customer_id` = `shop`.`c`.`id`)))))\",\n      \"attached_subqueries\": [\n        {\n          \"dependent\": true,\n          \"cacheable\": false,\n          \"query_block\": {\n            \"select_id\": 2,\n            \"cost_info\": {\n              \"query_cost\": \"11.98\"\n            },\n            \"table\": {\n              \"table_name\": \"o\",\n              \"access_type\": \"ref\",\n              \"possible_keys\": [\n                \"orders_customer_id_idx\"\n              ],\n              \"key\": \"orders_customer_id_idx\",\n              \"used_key_parts\": [\n                \"customer_id\"\n              ],\n              \"key_length\": \"4\",\n              \"ref\": [\n                \"shop.c.id\"\n              ],\n              \"rows_examined_per_scan\": 9,\n              \"rows_produced_per_join\": 0,\n              \"filtered\": \"10.00\",\n              \"cost_info\": {\n                \"read_cost\": \"9.98\",\n                \"eval_cost\": \"0.20\",\n                \"prefix_cost\": \"11.98\",\n                \"data_read_per_join\": \"47\"\n              },\n              \"used_columns\": [\n                \"customer_id\",\n                \"status\"\n              ],\n              \"attached_condition\": \"(`shop`.`o`.`status` = 'cancelled')\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "PRIMARY",
+          "c",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          19633,
+          100,
+          "Using where"
+        ],
+        [
+          2,
+          "DEPENDENT SUBQUERY",
+          "o",
+          null,
+          "ref",
+          "orders_customer_id_idx",
+          "orders_customer_id_idx",
+          "4",
+          "shop.c.id",
+          9,
+          10,
+          "Using where"
+        ]
+      ]
+    }
+  }
+}

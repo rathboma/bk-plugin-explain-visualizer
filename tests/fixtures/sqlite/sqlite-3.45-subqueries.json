@@ -1,0 +1,62 @@
+{
+  "name": "sqlite-3.45-subqueries",
+  "sqliteVersion": "3.45.1",
+  "modifies": false,
+  "query": "SELECT c.email, s.spent,\n  (SELECT count(*) FROM orders o2 WHERE o2.customer_id = c.id) AS order_count\nFROM customers c\nJOIN (\n  SELECT customer_id, sum(total) AS spent\n  FROM orders\n  GROUP BY customer_id\n) s ON s.customer_id = c.id\nWHERE c.country = 'JP'\n  AND s.spent > (SELECT avg(total) * 12 FROM orders)",
+  "columns": [
+    "id",
+    "parent",
+    "notused",
+    "detail"
+  ],
+  "rows": [
+    [
+      2,
+      0,
+      0,
+      "CO-ROUTINE s"
+    ],
+    [
+      9,
+      2,
+      0,
+      "SCAN orders USING INDEX orders_customer_id_idx"
+    ],
+    [
+      42,
+      0,
+      0,
+      "SCAN s"
+    ],
+    [
+      48,
+      0,
+      0,
+      "SCALAR SUBQUERY 3"
+    ],
+    [
+      53,
+      48,
+      0,
+      "SCAN orders"
+    ],
+    [
+      64,
+      0,
+      0,
+      "SEARCH c USING INTEGER PRIMARY KEY (rowid=?)"
+    ],
+    [
+      72,
+      0,
+      0,
+      "CORRELATED SCALAR SUBQUERY 1"
+    ],
+    [
+      77,
+      72,
+      0,
+      "SEARCH o2 USING COVERING INDEX orders_customer_id_idx (customer_id=?)"
+    ]
+  ]
+}

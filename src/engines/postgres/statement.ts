@@ -1,4 +1,5 @@
 import type { ExplainRequest, ServerInfo, StatementInfo } from "../types";
+import { emptyStatement, onlyStatement, word } from "../shared/statement";
 import { splitStatements, type Token } from "./lexer";
 
 /** Statements that only read data, as long as they contain no DML. */
@@ -20,11 +21,13 @@ const BOOLEAN_EXPLAIN_OPTIONS = new Set([
   "MEMORY",
 ]);
 
-const word = (t: Token | undefined) => (t?.type === "word" ? t.text.toUpperCase() : undefined);
-
-function emptyInfo(statement: string, error?: string): StatementInfo {
-  return { statement, modifiesData: false, requestedOptions: {}, hasParameters: false, error };
+/** What the PostgreSQL engine learns about its server. */
+export interface PostgresServerInfo extends ServerInfo {
+  /** False when backslashes escape quotes in plain strings. */
+  standardConformingStrings?: boolean;
 }
+
+const emptyInfo = emptyStatement;
 
 /**
  * Reads an `EXPLAIN [ANALYZE] [VERBOSE]` or `EXPLAIN (option, ...)` prefix.
@@ -79,19 +82,10 @@ function containsDml(tokens: Token[]): boolean {
 }
 
 /** Classifies a statement for EXPLAIN. Never throws. */
-export function inspectStatement(sql: string, server?: ServerInfo): StatementInfo {
-  const statements = splitStatements(sql, { backslashQuotes: server?.standardConformingStrings === false });
-  if (statements.length === 0) {
-    return emptyInfo("", "No SQL statement to explain.");
-  }
-  if (statements.length > 1) {
-    return emptyInfo(
-      sql.trim(),
-      `Found ${statements.length} statements. Only one statement can be explained at a time.`
-    );
-  }
+export function inspectStatement(sql: string, server?: PostgresServerInfo): StatementInfo {
+  const tokens = onlyStatement(sql, splitStatements(sql, { backslashQuotes: server?.standardConformingStrings === false }));
+  if (!Array.isArray(tokens)) return tokens;
 
-  const [{ tokens }] = statements;
   const requestedOptions: StatementInfo["requestedOptions"] = {};
   let start = 0;
   if (word(tokens[0]) === "EXPLAIN") {

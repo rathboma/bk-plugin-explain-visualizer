@@ -1,0 +1,32 @@
+{
+  "name": "sqlite-3.27-distinct",
+  "sqliteVersion": "3.27.2",
+  "modifies": false,
+  "query": "SELECT DISTINCT o.status, c.country FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.total > 1000",
+  "columns": [
+    "id",
+    "parent",
+    "notused",
+    "detail"
+  ],
+  "rows": [
+    [
+      5,
+      0,
+      0,
+      "SCAN TABLE customers AS c USING COVERING INDEX customers_country_idx"
+    ],
+    [
+      7,
+      0,
+      0,
+      "SEARCH TABLE orders AS o USING INDEX orders_customer_id_idx (customer_id=?)"
+    ],
+    [
+      23,
+      0,
+      0,
+      "USE TEMP B-TREE FOR DISTINCT"
+    ]
+  ]
+}

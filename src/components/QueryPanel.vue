@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import Icon from "./Icon.vue";
 import { useExplainer } from "../state/inject";
 import type { ExplainOption } from "../engines/types";
-import { databaseName } from "../engines/registry";
+import { databaseName, supportedDatabaseNames } from "../engines/registry";
 
 const ex = useExplainer();
 const { state, engine } = ex;
@@ -24,23 +24,17 @@ const text = computed({
 });
 // Leave room for the plan once there is one; the box can still be resized.
 const rows = computed(() => Math.min(ex.plan.value ? 4 : 10, Math.max(3, text.value.split("\n").length)));
-const statement = computed(() => (state.mode === "query" && engine.value ? engine.value.inspect(state.query) : undefined));
-const writes = computed(() => Boolean(statement.value && !statement.value.error && statement.value.modifiesData));
-const analyzeBlocked = computed(() => writes.value && ex.readOnly.value);
+const policy = ex.analyzePolicy;
 
 const dbLabel = computed(() => {
-  if (!engine.value) return state.connection ? databaseName(state.connection.databaseType) : "";
+  const name = state.server?.productName ?? databaseName(state.connection?.databaseType ?? state.connection?.connectionType);
+  if (!state.connection && !engine.value) return "";
   const version = state.server?.versionLabel;
-  return version ? `${engine.value.displayName} ${version}` : engine.value.displayName;
+  return version ? `${name} ${version}` : name;
 });
 
 function optionUnavailable(option: ExplainOption): string | undefined {
-  const version = state.server?.version;
-  if (option.minServerVersion && version !== undefined && version < option.minServerVersion) {
-    const major = Math.floor(option.minServerVersion / 10000);
-    return `Needs ${engine.value?.displayName ?? "server"} ${major}+`;
-  }
-  return undefined;
+  return option.unavailable?.(state.server);
 }
 
 const activeOptions = computed(() =>
@@ -62,7 +56,8 @@ function submit(analyze: boolean) {
 function onKeydown(event: KeyboardEvent) {
   if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
     event.preventDefault();
-    submit(event.shiftKey);
+    // Without Explain Analyze (SQLite), Shift does nothing extra.
+    submit(event.shiftKey && Boolean(engine.value?.supportsAnalyze));
   }
 }
 
@@ -138,13 +133,10 @@ onBeforeUnmount(() => document.removeEventListener("mousedown", onDocumentClick)
           <Icon name="play" :size="14" /> Explain <span class="kbd">{{ mod }}+Enter</span>
         </button>
         <button
+          v-if="engine?.supportsAnalyze"
           class="btn"
-          :disabled="running || !engine?.supportsAnalyze || analyzeBlocked"
-          :title="
-            analyzeBlocked
-              ? 'Statements that change data can\'t be analyzed on a read-only connection'
-              : 'Run the statement and measure the time and rows of every step'
-          "
+          :disabled="running || !!policy.blocked"
+          :title="policy.blocked ?? 'Run the statement and measure the time and rows of every step'"
           @click="submit(true)"
         >
           <Icon name="timer" :size="14" /> Explain Analyze <span class="kbd">{{ mod }}+Shift+Enter</span>
@@ -178,19 +170,15 @@ onBeforeUnmount(() => document.removeEventListener("mousedown", onDocumentClick)
           </div>
         </div>
         <span class="spacer" />
-        <span v-if="analyzeBlocked" class="hint write-hint">
-          This statement changes data, so it can't be analyzed on a read-only connection.
-        </span>
-        <span v-else-if="writes" class="hint write-hint">
-          This statement changes data. Explain Analyze rolls the changes back.
-        </span>
+        <span v-if="policy.blocked" class="hint write-hint" :title="policy.blocked">{{ policy.blocked }}</span>
+        <span v-else-if="policy.note" class="hint write-hint" :title="policy.note">{{ policy.note }}</span>
       </template>
       <template v-else>
         <button class="btn primary" :disabled="running" @click="submit(false)">
           <Icon name="play" :size="14" /> Visualize <span class="kbd">{{ mod }}+Enter</span>
         </button>
         <span class="spacer" />
-        <span class="hint">{{ engine?.pasteHint ?? "Paste a PostgreSQL plan (JSON or text)." }}</span>
+        <span class="hint">{{ engine?.pasteHint ?? `Paste a plan from ${supportedDatabaseNames()}.` }}</span>
       </template>
     </div>
   </header>

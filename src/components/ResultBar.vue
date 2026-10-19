@@ -57,8 +57,9 @@ function setColor(color: "time" | "cost") {
 <template>
   <div v-if="plan" class="result-bar">
     <div class="stats">
-      <span v-if="!plan.analyzed" class="badge info" title="The statement was planned but not run">Estimate</span>
-      <span v-else class="badge" title="The statement was run to measure it">Analyzed</span>
+      <span v-if="plan.analyzed" class="badge" title="The statement was run to measure it">Analyzed</span>
+      <span v-else-if="ex.stats.value?.metrics.cost || ex.stats.value?.metrics.estimatedRows" class="badge info" title="The statement was planned but not run">Estimate</span>
+      <span v-else class="badge info" title="The database reports the plan's steps without costs or row estimates">Plan only</span>
       <span v-for="s in summary" :key="s.label" class="stat" :title="s.title">
         <span class="label">{{ s.label }}</span>
         <span class="value">{{ s.value }}</span>

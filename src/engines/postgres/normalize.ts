@@ -3,7 +3,6 @@ import {
   type Condition,
   type DraftNode,
   type Plan,
-  type PlanNode,
   type Property,
   type ValueFormat,
 } from "../../core/plan";
@@ -11,6 +10,7 @@ import { displayName, nodeKind, targetName, type PgNode } from "./nodeTypes";
 import { computeTimings } from "./timing";
 import { postgresInsights } from "./insights";
 import { finishPlan } from "../../core/analysis";
+import { computeExclusiveCosts } from "../../core/metrics";
 
 /** Keys shown as highlighted expressions rather than plain properties. */
 const CONDITION_KEYS = [
@@ -376,12 +376,9 @@ export function normalizePlan(input: unknown, sourceFormat: "json" | "text" = "j
   postgresInsights(plan, top);
   return finishPlan(plan, {
     statisticsAdvice: "Running ANALYZE on the tables involved refreshes their statistics.",
+    stopsEarly: (node, parent) =>
+      node.role === "SubPlan" ||
+      node.role === "InitPlan" ||
+      (parent !== undefined && (/Semi|Anti/.test(parent.operation) || /^Merge\b.*\bJoin$/.test(parent.operation))),
   });
-}
-
-function computeExclusiveCosts(node: PlanNode): void {
-  for (const child of node.children) computeExclusiveCosts(child);
-  if (node.totalCost === undefined) return;
-  const childCost = node.children.reduce((sum, c) => sum + (c.totalCost ?? 0), 0);
-  node.exclusiveCost = Math.max(0, node.totalCost - childCost);
 }

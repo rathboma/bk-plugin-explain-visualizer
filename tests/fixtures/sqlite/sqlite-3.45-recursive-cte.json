@@ -1,0 +1,56 @@
+{
+  "name": "sqlite-3.45-recursive-cte",
+  "sqliteVersion": "3.45.1",
+  "modifies": false,
+  "query": "WITH RECURSIVE chain(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM chain WHERE n < 10)\nSELECT c.id FROM chain JOIN customers c ON c.id = chain.n",
+  "columns": [
+    "id",
+    "parent",
+    "notused",
+    "detail"
+  ],
+  "rows": [
+    [
+      2,
+      0,
+      0,
+      "CO-ROUTINE chain"
+    ],
+    [
+      5,
+      2,
+      0,
+      "SETUP"
+    ],
+    [
+      6,
+      5,
+      0,
+      "SCAN CONSTANT ROW"
+    ],
+    [
+      17,
+      2,
+      0,
+      "RECURSIVE STEP"
+    ],
+    [
+      18,
+      17,
+      0,
+      "SCAN chain"
+    ],
+    [
+      29,
+      0,
+      0,
+      "SCAN chain"
+    ],
+    [
+      32,
+      0,
+      0,
+      "SEARCH c USING INTEGER PRIMARY KEY (rowid=?)"
+    ]
+  ]
+}

@@ -7,6 +7,7 @@ const PATHS: Record<string, string> = {
   join: "M6 4.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7zM10 4.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7z",
   aggregate: "M12 3H4l4.5 5L4 13h8",
   sort: "M5 3v10M2.5 10.5L5 13l2.5-2.5M11 13V3M8.5 5.5L11 3l2.5 2.5",
+  filter: "M2.5 3.5h11L9 8.5v4l-2 1v-5z",
   limit: "M3 4h10M3 8h6M3 12h3",
   materialize: "M3 5l5-2.5 5 2.5-5 2.5zM3 8l5 2.5 5-2.5M3 11l5 2.5 5-2.5",
   set: "M4 3v5a4 4 0 0 0 8 0V3",

@@ -1,8 +1,15 @@
 import { computed, reactive, shallowRef } from "vue";
 import { planStats } from "../core/analysis";
 import type { Plan } from "../core/plan";
-import { engineForConnection, engineForPlan, ENGINES } from "../engines/registry";
-import type { ExplainEngine, ExplainOptionValues, ParsedPlan, RawFormat, ServerInfo } from "../engines/types";
+import { engineForConnection, engineForPlan, ENGINES, supportedDatabaseNames } from "../engines/registry";
+import type {
+  AnalyzePolicy,
+  ExplainEngine,
+  ExplainOptionValues,
+  ParsedPlan,
+  RawFormat,
+  ServerInfo,
+} from "../engines/types";
 import { errorMessage, type ConnectionInfo, type Host } from "../host/host";
 import type { LaunchInput } from "../host/launch";
 
@@ -81,6 +88,17 @@ export function createExplainer(host: Host) {
   const colorBy = computed<ColorBy>(() => (plan.value?.analyzed ? state.colorBy : "cost"));
   const readOnly = computed(() => state.connection?.readOnlyMode === true);
   const unsupportedDatabase = computed(() => state.ready && !engine.value);
+  /** The statement in the query box, as the engine reads it. */
+  const statement = computed(() =>
+    state.mode === "query" && engine.value ? engine.value.inspect(state.query, state.server) : undefined
+  );
+  /** What Explain Analyze would do with that statement. */
+  const analyzePolicy = computed<AnalyzePolicy>(() => {
+    const current = engine.value;
+    const info = statement.value;
+    if (!current?.supportsAnalyze || !info || info.error) return {};
+    return current.analyzePolicy(info, { server: state.server, readOnlyConnection: readOnly.value });
+  });
 
   function persist() {
     const saved: SavedViewState = {
@@ -134,22 +152,23 @@ export function createExplainer(host: Host) {
     const statement = current.inspect(state.query, server);
     if (statement.error) return fail(statement.error);
 
-    if (analyze && statement.hasParameters) {
-      return fail("Statements with parameters can't be analyzed, because they have to run. Replace the parameters with values first.");
-    }
-    if (analyze && statement.modifiesData) {
-      if (readOnly.value) {
-        return fail("This connection is read-only, so a statement that changes data can't be analyzed. Explain (without Analyze) still works.");
+    if (analyze) {
+      if (!current.supportsAnalyze) {
+        return fail(`${current.displayName} can't measure the steps of a plan, so there is no Explain Analyze. Explain still works.`);
       }
-      const proceed = await host.confirm(
-        "Run this statement?",
-        "Explain Analyze runs the statement to measure it. This statement can change data: its changes are rolled back afterwards, but effects outside the database transaction (such as sequence values) are not undone.",
-        "Run and Roll Back"
-      );
-      if (proceed === undefined) {
-        return fail("This version of Beekeeper Studio can't ask for confirmation, so statements that change data can't be analyzed. Explain (without Analyze) still works.");
+      if (statement.hasParameters) {
+        return fail("Statements with parameters can't be analyzed, because they have to run. Replace the parameters with values first.");
       }
-      if (!proceed) return;
+      const policy = current.analyzePolicy(statement, { server, readOnlyConnection: readOnly.value });
+      if (policy.blocked) return fail(policy.blocked);
+      if (policy.confirm) {
+        const { title, message, confirmLabel } = policy.confirm;
+        const proceed = await host.confirm(title, message, confirmLabel);
+        if (proceed === undefined) {
+          return fail("This version of Beekeeper Studio can't ask for confirmation, so this statement can't be analyzed. Explain (without Analyze) still works.");
+        }
+        if (!proceed) return;
+      }
     }
 
     const run = ++runCounter;
@@ -174,8 +193,7 @@ export function createExplainer(host: Host) {
     if (typeof value === "string" && !value.trim()) return fail("Paste a plan to visualize.");
     const parser = engineForPlan(value, engine.value);
     if (!parser) {
-      const names = ENGINES.map((e) => e.displayName).join(", ");
-      return fail(`This doesn't look like a query plan. Supported formats: ${names}.`);
+      return fail(`This doesn't look like a query plan. Plans from ${supportedDatabaseNames()} can be visualized.`);
     }
     try {
       runCounter++;
@@ -244,7 +262,18 @@ export function createExplainer(host: Host) {
       // Explaining is safe: the statement is planned, not run. ANALYZE only
       // runs automatically when the user wrote EXPLAIN ANALYZE themselves,
       // and never on read-only connections, where it can't be rolled back.
-      if (engine.value) await explain(Boolean(analyze) && !readOnly.value);
+      // A statement the engine won't analyze is explained instead; the query
+      // panel says why.
+      const current = engine.value;
+      if (current) {
+        let auto = Boolean(analyze) && current.supportsAnalyze && !readOnly.value;
+        if (auto) {
+          const server = await serverInfo();
+          const info = current.inspect(state.query, server);
+          auto = !info.error && !current.analyzePolicy(info, { server, readOnlyConnection: false }).blocked;
+        }
+        await explain(auto);
+      }
     } else {
       persist();
     }
@@ -260,6 +289,8 @@ export function createExplainer(host: Host) {
     colorBy,
     readOnly,
     unsupportedDatabase,
+    statement,
+    analyzePolicy,
     init,
     explain,
     visualize,
