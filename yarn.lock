@@ -27,10 +27,10 @@
     "@babel/helper-string-parser" "^7.29.7"
     "@babel/helper-validator-identifier" "^7.29.7"
 
-"@beekeeperstudio/plugin@^1.7.2":
-  version "1.7.2"
-  resolved "https://registry.yarnpkg.com/@beekeeperstudio/plugin/-/plugin-1.7.2.tgz#94334425c31c71c7e6d4ec98ec00854202a5f3ba"
-  integrity sha512-dc/n7LCEKJpqj0NeMPUajL7tIuwoVUFAXZxpJGpctQaQ60weglCmpNkSkTYbYajWEVBVVFTvQNtWGFN/mt6F0A==
+"@beekeeperstudio/plugin@^1.8.0":
+  version "1.8.0"
+  resolved "https://registry.yarnpkg.com/@beekeeperstudio/plugin/-/plugin-1.8.0.tgz#9fc397da1c1e8c1c8677c3b1e204337f0be552a3"
+  integrity sha512-BYKaP+NdT1EPd9TebRTWczeXUYggNJ/3r1mlne4t525qHJQbbD1sW0g5zZ8FKoGdgL9RYp1Ng/dwunJ7b6AH3w==
 
 "@beekeeperstudio/vite-plugin@^1.1.0":
   version "1.1.0"
