@@ -1,0 +1,155 @@
+{
+  "name": "mariadb-11.4-subquery-union",
+  "flavor": "mariadb",
+  "serverVersion": "11.4.13-MariaDB-ubu2404",
+  "version": 110413,
+  "modifies": false,
+  "query": "SELECT * FROM customers\nWHERE id IN (SELECT customer_id FROM orders WHERE total > 2400 UNION SELECT id FROM customers WHERE country = 'JP')",
+  "outputs": {
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost\": 3.3747576,\n    \"nested_loop\": [\n      {\n        \"table\": {\n          \"table_name\": \"customers\",\n          \"access_type\": \"ALL\",\n          \"loops\": 1,\n          \"rows\": 20134,\n          \"cost\": 3.3747576,\n          \"filtered\": 100,\n          \"attached_condition\": \"<in_optimizer>(customers.`id`,<exists>(subquery#2))\"\n        }\n      }\n    ],\n    \"subqueries\": [\n      {\n        \"query_block\": {\n          \"union_result\": {\n            \"table_name\": \"<union2,3>\",\n            \"access_type\": \"ALL\",\n            \"query_specifications\": [\n              {\n                \"query_block\": {\n                  \"select_id\": 2,\n                  \"cost\": 0.01977232,\n                  \"nested_loop\": [\n                    {\n                      \"table\": {\n                        \"table_name\": \"orders\",\n                        \"access_type\": \"ref\",\n                        \"possible_keys\": [\"orders_customer_id_idx\"],\n                        \"key\": \"orders_customer_id_idx\",\n                        \"key_length\": \"4\",\n                        \"used_key_parts\": [\"customer_id\"],\n                        \"ref\": [\"func\"],\n                        \"loops\": 1,\n                        \"rows\": 10,\n                        \"cost\": 0.01977232,\n                        \"filtered\": 100,\n                        \"attached_condition\": \"orders.total > 2400\"\n                      }\n                    }\n                  ]\n                }\n              },\n              {\n                \"query_block\": {\n                  \"select_id\": 3,\n                  \"operation\": \"UNION\",\n                  \"cost\": 0.001693605,\n                  \"nested_loop\": [\n                    {\n                      \"table\": {\n                        \"table_name\": \"customers\",\n                        \"access_type\": \"eq_ref\",\n                        \"possible_keys\": [\"PRIMARY\", \"customers_country_idx\"],\n                        \"key\": \"customers_country_idx\",\n                        \"key_length\": \"14\",\n                        \"used_key_parts\": [\"country\", \"id\"],\n                        \"ref\": [\"const\", \"func\"],\n                        \"loops\": 1,\n                        \"rows\": 1,\n                        \"cost\": 0.001693605,\n                        \"filtered\": 100,\n                        \"attached_condition\": \"customers.country = 'JP'\",\n                        \"using_index\": true\n                      }\n                    }\n                  ]\n                }\n              }\n            ]\n          }\n        }\n      }\n    ]\n  }\n}",
+    "jsonAnalyze": "{\n  \"query_optimization\": {\n    \"r_total_time_ms\": 0.189547041\n  },\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost\": 3.3747576,\n    \"r_loops\": 1,\n    \"r_total_time_ms\": 482.4715649,\n    \"nested_loop\": [\n      {\n        \"table\": {\n          \"table_name\": \"customers\",\n          \"access_type\": \"ALL\",\n          \"loops\": 1,\n          \"r_loops\": 1,\n          \"rows\": 20134,\n          \"r_rows\": 20000,\n          \"cost\": 3.3747576,\n          \"r_table_time_ms\": 6.036202255,\n          \"r_other_time_ms\": 6.257549696,\n          \"r_engine_stats\": {\n            \"pages_accessed\": 70\n          },\n          \"filtered\": 100,\n          \"r_filtered\": 42.045,\n          \"attached_condition\": \"<in_optimizer>(customers.`id`,<exists>(subquery#2))\"\n        }\n      }\n    ],\n    \"subqueries\": [\n      {\n        \"query_block\": {\n          \"union_result\": {\n            \"table_name\": \"<union2,3>\",\n            \"access_type\": \"ALL\",\n            \"r_loops\": 20000,\n            \"r_rows\": 0.42045,\n            \"query_specifications\": [\n              {\n                \"query_block\": {\n                  \"select_id\": 2,\n                  \"cost\": 0.01977232,\n                  \"r_loops\": 20000,\n                  \"r_total_time_ms\": 420.8809651,\n                  \"nested_loop\": [\n                    {\n                      \"table\": {\n                        \"table_name\": \"orders\",\n                        \"access_type\": \"ref\",\n                        \"possible_keys\": [\"orders_customer_id_idx\"],\n                        \"key\": \"orders_customer_id_idx\",\n                        \"key_length\": \"4\",\n                        \"used_key_parts\": [\"customer_id\"],\n                        \"ref\": [\"func\"],\n                        \"loops\": 1,\n                        \"r_loops\": 20000,\n                        \"rows\": 10,\n                        \"r_rows\": 10,\n                        \"cost\": 0.01977232,\n                        \"r_table_time_ms\": 383.0483274,\n                        \"r_other_time_ms\": 31.52501236,\n                        \"r_engine_stats\": {\n                          \"pages_accessed\": 440348,\n                          \"pages_read_count\": 60,\n                          \"pages_read_time_ms\": 21.30633916\n                        },\n                        \"filtered\": 100,\n                        \"r_filtered\": 32.4,\n                        \"attached_condition\": \"orders.total > 2400\"\n                      }\n                    }\n                  ]\n                }\n              },\n              {\n                \"query_block\": {\n                  \"select_id\": 3,\n                  \"operation\": \"UNION\",\n                  \"cost\": 0.001693605,\n                  \"r_loops\": 20000,\n                  \"r_total_time_ms\": 33.41339489,\n                  \"nested_loop\": [\n                    {\n                      \"table\": {\n                        \"table_name\": \"customers\",\n                        \"access_type\": \"eq_ref\",\n                        \"possible_keys\": [\"PRIMARY\", \"customers_country_idx\"],\n                        \"key\": \"customers_country_idx\",\n                        \"key_length\": \"14\",\n                        \"used_key_parts\": [\"country\", \"id\"],\n                        \"ref\": [\"const\", \"func\"],\n                        \"loops\": 1,\n                        \"r_loops\": 20000,\n                        \"rows\": 1,\n                        \"r_rows\": 0.14285,\n                        \"cost\": 0.001693605,\n                        \"r_table_time_ms\": 21.74782455,\n                        \"r_other_time_ms\": 3.95816568,\n                        \"r_engine_stats\": {\n                          \"pages_accessed\": 40029\n                        },\n                        \"filtered\": 100,\n                        \"r_filtered\": 100,\n                        \"attached_condition\": \"customers.country = 'JP'\",\n                        \"using_index\": true\n                      }\n                    }\n                  ]\n                }\n              }\n            ]\n          }\n        }\n      }\n    ]\n  }\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "PRIMARY",
+          "customers",
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          "20134",
+          "Using where"
+        ],
+        [
+          2,
+          "DEPENDENT SUBQUERY",
+          "orders",
+          "ref",
+          "orders_customer_id_idx",
+          "orders_customer_id_idx",
+          "4",
+          "func",
+          "10",
+          "Using where"
+        ],
+        [
+          3,
+          "DEPENDENT UNION",
+          "customers",
+          "eq_ref",
+          "PRIMARY,customers_country_idx",
+          "customers_country_idx",
+          "14",
+          "const,func",
+          "1",
+          "Using where; Using index"
+        ],
+        [
+          null,
+          "UNION RESULT",
+          "<union2,3>",
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          null,
+          ""
+        ]
+      ]
+    },
+    "traditionalAnalyze": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "r_rows",
+        "filtered",
+        "r_filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "PRIMARY",
+          "customers",
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          "20134",
+          "20000.00",
+          100,
+          42.05,
+          "Using where"
+        ],
+        [
+          2,
+          "DEPENDENT SUBQUERY",
+          "orders",
+          "ref",
+          "orders_customer_id_idx",
+          "orders_customer_id_idx",
+          "4",
+          "func",
+          "10",
+          "10.00",
+          100,
+          32.4,
+          "Using where"
+        ],
+        [
+          3,
+          "DEPENDENT UNION",
+          "customers",
+          "eq_ref",
+          "PRIMARY,customers_country_idx",
+          "customers_country_idx",
+          "14",
+          "const,func",
+          "1",
+          "0.14",
+          100,
+          100,
+          "Using where; Using index"
+        ],
+        [
+          null,
+          "UNION RESULT",
+          "<union2,3>",
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "0.42",
+          null,
+          null,
+          ""
+        ]
+      ]
+    }
+  }
+}

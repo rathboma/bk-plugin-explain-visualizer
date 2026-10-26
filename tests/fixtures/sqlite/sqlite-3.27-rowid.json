@@ -1,0 +1,20 @@
+{
+  "name": "sqlite-3.27-rowid",
+  "sqliteVersion": "3.27.2",
+  "modifies": false,
+  "query": "SELECT * FROM orders WHERE id = 5",
+  "columns": [
+    "id",
+    "parent",
+    "notused",
+    "detail"
+  ],
+  "rows": [
+    [
+      2,
+      0,
+      0,
+      "SEARCH TABLE orders USING INTEGER PRIMARY KEY (rowid=?)"
+    ]
+  ]
+}

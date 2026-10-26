@@ -1,0 +1,43 @@
+{
+  "name": "mysql-5.7-seq-scan-filter",
+  "flavor": "mysql",
+  "serverVersion": "5.7.44",
+  "version": 50744,
+  "modifies": false,
+  "query": "SELECT * FROM customers WHERE email LIKE '%99@example.com'",
+  "outputs": {
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"4023.60\"\n    },\n    \"table\": {\n      \"table_name\": \"customers\",\n      \"access_type\": \"ALL\",\n      \"rows_examined_per_scan\": 19633,\n      \"rows_produced_per_join\": 2181,\n      \"filtered\": \"11.11\",\n      \"cost_info\": {\n        \"read_cost\": \"3587.35\",\n        \"eval_cost\": \"436.25\",\n        \"prefix_cost\": \"4023.60\",\n        \"data_read_per_join\": \"255K\"\n      },\n      \"used_columns\": [\n        \"id\",\n        \"email\",\n        \"country\",\n        \"created_at\"\n      ],\n      \"attached_condition\": \"(`shop`.`customers`.`email` like '%99@example.com')\"\n    }\n  }\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "SIMPLE",
+          "customers",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          19633,
+          11.11,
+          "Using where"
+        ]
+      ]
+    }
+  }
+}

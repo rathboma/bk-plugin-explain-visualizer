@@ -1,0 +1,39 @@
+{
+  "name": "mariadb-11.4-insert-select",
+  "flavor": "mariadb",
+  "serverVersion": "11.4.13-MariaDB-ubu2404",
+  "version": 110413,
+  "modifies": true,
+  "query": "INSERT INTO order_items (order_id, product_id, quantity, unit_price)\nSELECT id, 1, 1, 9.99 FROM orders WHERE customer_id < 20",
+  "outputs": {
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost\": 0.03030719,\n    \"nested_loop\": [\n      {\n        \"table\": {\n          \"table_name\": \"orders\",\n          \"access_type\": \"range\",\n          \"possible_keys\": [\"orders_customer_id_idx\"],\n          \"key\": \"orders_customer_id_idx\",\n          \"key_length\": \"4\",\n          \"used_key_parts\": [\"customer_id\"],\n          \"loops\": 1,\n          \"rows\": 190,\n          \"cost\": 0.03030719,\n          \"filtered\": 100,\n          \"attached_condition\": \"orders.customer_id < 20\",\n          \"using_index\": true\n        }\n      }\n    ]\n  }\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "SIMPLE",
+          "orders",
+          "range",
+          "orders_customer_id_idx",
+          "orders_customer_id_idx",
+          "4",
+          null,
+          "190",
+          "Using where; Using index"
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "name": "mysql-8.0-index-merge",
+  "flavor": "mysql",
+  "serverVersion": "8.0.46",
+  "version": 80046,
+  "modifies": false,
+  "query": "SELECT * FROM orders\nWHERE ordered_at BETWEEN '2022-01-01' AND '2022-01-15' OR customer_id < 50",
+  "outputs": {
+    "tree": "-> Filter: ((orders.ordered_at between '2022-01-01' and '2022-01-15') or (orders.customer_id < 50))  (cost=4485 rows=3290)\n    -> Sort-deduplicate by row ID  (cost=4485 rows=3290)\n        -> Index range scan on orders using orders_ordered_at_idx over ('2022-01-01 00:00:00' <= ordered_at <= '2022-01-15 00:00:00')  (cost=284 rows=2800)\n        -> Index range scan on orders using orders_customer_id_idx over (customer_id < 50)  (cost=49.4 rows=490)\n",
+    "treeAnalyze": "-> Filter: ((orders.ordered_at between '2022-01-01' and '2022-01-15') or (orders.customer_id < 50))  (cost=4485 rows=3290) (actual time=1.48..14.9 rows=3280 loops=1)\n    -> Sort-deduplicate by row ID  (cost=4485 rows=3290) (actual time=1.48..13.9 rows=3280 loops=1)\n        -> Index range scan on orders using orders_ordered_at_idx over ('2022-01-01 00:00:00' <= ordered_at <= '2022-01-15 00:00:00')  (cost=284 rows=2800) (actual time=0.0443..0.588 rows=2800 loops=1)\n        -> Index range scan on orders using orders_customer_id_idx over (customer_id < 50)  (cost=49.4 rows=490) (actual time=0.00337..0.116 rows=490 loops=1)\n",
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"4484.95\"\n    },\n    \"table\": {\n      \"table_name\": \"orders\",\n      \"access_type\": \"index_merge\",\n      \"possible_keys\": [\n        \"orders_customer_id_idx\",\n        \"orders_ordered_at_idx\"\n      ],\n      \"key\": \"sort_union(orders_ordered_at_idx,orders_customer_id_idx)\",\n      \"key_length\": \"5,4\",\n      \"rows_examined_per_scan\": 3290,\n      \"rows_produced_per_join\": 3290,\n      \"filtered\": \"100.00\",\n      \"cost_info\": {\n        \"read_cost\": \"4155.95\",\n        \"eval_cost\": \"329.00\",\n        \"prefix_cost\": \"4484.95\",\n        \"data_read_per_join\": \"334K\"\n      },\n      \"used_columns\": [\n        \"id\",\n        \"customer_id\",\n        \"status\",\n        \"ordered_at\",\n        \"total\"\n      ],\n      \"attached_condition\": \"((`shop`.`orders`.`ordered_at` between '2022-01-01' and '2022-01-15') or (`shop`.`orders`.`customer_id` < 50))\"\n    }\n  }\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "SIMPLE",
+          "orders",
+          null,
+          "index_merge",
+          "orders_customer_id_idx,orders_ordered_at_idx",
+          "orders_ordered_at_idx,orders_customer_id_idx",
+          "5,4",
+          null,
+          3290,
+          100,
+          "Using sort_union(orders_ordered_at_idx,orders_customer_id_idx); Using where"
+        ]
+      ]
+    }
+  }
+}

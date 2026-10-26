@@ -1,0 +1,99 @@
+{
+  "name": "mysql-5.7-derived-union",
+  "flavor": "mysql",
+  "serverVersion": "5.7.44",
+  "version": 50744,
+  "modifies": false,
+  "query": "SELECT * FROM customers c\nJOIN (SELECT customer_id FROM orders WHERE status = 'cancelled' UNION SELECT id FROM customers WHERE country = 'JP') u\n  ON u.customer_id = c.id",
+  "outputs": {
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"33123.65\"\n    },\n    \"nested_loop\": [\n      {\n        \"table\": {\n          \"table_name\": \"u\",\n          \"access_type\": \"ALL\",\n          \"rows_examined_per_scan\": 22837,\n          \"rows_produced_per_join\": 22837,\n          \"filtered\": \"100.00\",\n          \"cost_info\": {\n            \"read_cost\": \"1151.85\",\n            \"eval_cost\": \"4567.40\",\n            \"prefix_cost\": \"5719.25\",\n            \"data_read_per_join\": \"356K\"\n          },\n          \"used_columns\": [\n            \"customer_id\"\n          ],\n          \"materialized_from_subquery\": {\n            \"using_temporary_table\": true,\n            \"dependent\": false,\n            \"cacheable\": true,\n            \"query_block\": {\n              \"union_result\": {\n                \"using_temporary_table\": true,\n                \"table_name\": \"<union2,3>\",\n                \"access_type\": \"ALL\",\n                \"query_specifications\": [\n                  {\n                    \"dependent\": false,\n                    \"cacheable\": true,\n                    \"query_block\": {\n                      \"select_id\": 2,\n                      \"cost_info\": {\n                        \"query_cost\": \"40569.00\"\n                      },\n                      \"table\": {\n                        \"table_name\": \"orders\",\n                        \"access_type\": \"ALL\",\n                        \"rows_examined_per_scan\": 199800,\n                        \"rows_produced_per_join\": 19980,\n                        \"filtered\": \"10.00\",\n                        \"cost_info\": {\n                          \"read_cost\": \"36573.00\",\n                          \"eval_cost\": \"3996.00\",\n                          \"prefix_cost\": \"40569.00\",\n                          \"data_read_per_join\": \"936K\"\n                        },\n                        \"used_columns\": [\n                          \"customer_id\",\n                          \"status\"\n                        ],\n                        \"attached_condition\": \"(`shop`.`orders`.`status` = 'cancelled')\"\n                      }\n                    }\n                  },\n                  {\n                    \"dependent\": false,\n                    \"cacheable\": true,\n                    \"query_block\": {\n                      \"select_id\": 3,\n                      \"cost_info\": {\n                        \"query_cost\": \"575.19\"\n                      },\n                      \"table\": {\n                        \"table_name\": \"customers\",\n                        \"access_type\": \"ref\",\n                        \"possible_keys\": [\n                          \"customers_country_idx\"\n                        ],\n                        \"key\": \"customers_country_idx\",\n                        \"used_key_parts\": [\n                          \"country\"\n                        ],\n                        \"key_length\": \"4\",\n                        \"ref\": [\n                          \"const\"\n                        ],\n                        \"rows_examined_per_scan\": 2857,\n                        \"rows_produced_per_join\": 2857,\n                        \"filtered\": \"100.00\",\n                        \"using_index\": true,\n                        \"cost_info\": {\n                          \"read_cost\": \"3.79\",\n                          \"eval_cost\": \"571.40\",\n                          \"prefix_cost\": \"575.19\",\n                          \"data_read_per_join\": \"334K\"\n                        },\n                        \"used_columns\": [\n                          \"id\",\n                          \"country\"\n                        ]\n                      }\n                    }\n                  }\n                ]\n              }\n            }\n          }\n        }\n      },\n      {\n        \"table\": {\n          \"table_name\": \"c\",\n          \"access_type\": \"eq_ref\",\n          \"possible_keys\": [\n            \"PRIMARY\"\n          ],\n          \"key\": \"PRIMARY\",\n          \"used_key_parts\": [\n            \"id\"\n          ],\n          \"key_length\": \"4\",\n          \"ref\": [\n            \"u.customer_id\"\n          ],\n          \"rows_examined_per_scan\": 1,\n          \"rows_produced_per_join\": 22837,\n          \"filtered\": \"100.00\",\n          \"cost_info\": {\n            \"read_cost\": \"22837.00\",\n            \"eval_cost\": \"4567.40\",\n            \"prefix_cost\": \"33123.65\",\n            \"data_read_per_join\": \"2M\"\n          },\n          \"used_columns\": [\n            \"id\",\n            \"email\",\n            \"country\",\n            \"created_at\"\n          ]\n        }\n      }\n    ]\n  }\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "PRIMARY",
+          "<derived2>",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          22837,
+          100,
+          null
+        ],
+        [
+          1,
+          "PRIMARY",
+          "c",
+          null,
+          "eq_ref",
+          "PRIMARY",
+          "PRIMARY",
+          "4",
+          "u.customer_id",
+          1,
+          100,
+          null
+        ],
+        [
+          2,
+          "DERIVED",
+          "orders",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          199800,
+          10,
+          "Using where"
+        ],
+        [
+          3,
+          "UNION",
+          "customers",
+          null,
+          "ref",
+          "customers_country_idx",
+          "customers_country_idx",
+          "4",
+          "const",
+          2857,
+          100,
+          "Using index"
+        ],
+        [
+          null,
+          "UNION RESULT",
+          "<union2,3>",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "Using temporary"
+        ]
+      ]
+    }
+  }
+}

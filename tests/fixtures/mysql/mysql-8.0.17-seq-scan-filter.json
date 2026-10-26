@@ -1,0 +1,44 @@
+{
+  "name": "mysql-8.0.17-seq-scan-filter",
+  "flavor": "mysql",
+  "serverVersion": "8.0.17",
+  "version": 80017,
+  "modifies": false,
+  "query": "SELECT * FROM customers WHERE email LIKE '%99@example.com'",
+  "outputs": {
+    "tree": "-> Filter: (customers.email like '%99@example.com')\n    -> Table scan on customers\n",
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"2039.35\"\n    },\n    \"table\": {\n      \"table_name\": \"customers\",\n      \"access_type\": \"ALL\",\n      \"rows_examined_per_scan\": 20151,\n      \"rows_produced_per_join\": 2238,\n      \"filtered\": \"11.11\",\n      \"cost_info\": {\n        \"read_cost\": \"1815.47\",\n        \"eval_cost\": \"223.88\",\n        \"prefix_cost\": \"2039.35\",\n        \"data_read_per_join\": \"926K\"\n      },\n      \"used_columns\": [\n        \"id\",\n        \"email\",\n        \"country\",\n        \"created_at\"\n      ],\n      \"attached_condition\": \"(`shop`.`customers`.`email` like '%99@example.com')\"\n    }\n  }\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "SIMPLE",
+          "customers",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          20151,
+          11.11,
+          "Using where"
+        ]
+      ]
+    }
+  }
+}

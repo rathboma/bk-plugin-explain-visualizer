@@ -1,0 +1,47 @@
+{
+  "name": "mysql-8.4-seq-scan-filter",
+  "flavor": "mysql",
+  "serverVersion": "8.4.11",
+  "version": 80411,
+  "modifies": false,
+  "query": "SELECT * FROM customers WHERE email LIKE '%99@example.com'",
+  "outputs": {
+    "tree": "-> Filter: (customers.email like '%99@example.com')  (cost=2019 rows=2217)\n    -> Table scan on customers  (cost=2019 rows=19951)\n",
+    "treeAnalyze": "-> Filter: (customers.email like '%99@example.com')  (cost=2019 rows=2217) (actual time=0.139..6.84 rows=200 loops=1)\n    -> Table scan on customers  (cost=2019 rows=19951) (actual time=0.11..3.61 rows=20000 loops=1)\n",
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"2019.35\"\n    },\n    \"table\": {\n      \"table_name\": \"customers\",\n      \"access_type\": \"ALL\",\n      \"rows_examined_per_scan\": 19951,\n      \"rows_produced_per_join\": 2216,\n      \"filtered\": \"11.11\",\n      \"cost_info\": {\n        \"read_cost\": \"1797.69\",\n        \"eval_cost\": \"221.66\",\n        \"prefix_cost\": \"2019.35\",\n        \"data_read_per_join\": \"917K\"\n      },\n      \"used_columns\": [\n        \"id\",\n        \"email\",\n        \"country\",\n        \"created_at\"\n      ],\n      \"attached_condition\": \"(`shop`.`customers`.`email` like '%99@example.com')\"\n    }\n  }\n}",
+    "jsonV2": "{\n  \"query\": \"/* select#1 */ select `shop`.`customers`.`id` AS `id`,`shop`.`customers`.`email` AS `email`,`shop`.`customers`.`country` AS `country`,`shop`.`customers`.`created_at` AS `created_at` from `shop`.`customers` where (`shop`.`customers`.`email` like '%99@example.com')\",\n  \"inputs\": [\n    {\n      \"operation\": \"Table scan on customers\",\n      \"table_name\": \"customers\",\n      \"access_type\": \"table\",\n      \"schema_name\": \"shop\",\n      \"used_columns\": [\n        \"id\",\n        \"email\",\n        \"country\",\n        \"created_at\"\n      ],\n      \"estimated_rows\": 19951.0,\n      \"estimated_total_cost\": 2019.35\n    }\n  ],\n  \"condition\": \"(customers.email like '%99@example.com')\",\n  \"operation\": \"Filter: (customers.email like '%99@example.com')\",\n  \"query_type\": \"select\",\n  \"access_type\": \"filter\",\n  \"estimated_rows\": 2216.556162312627,\n  \"estimated_total_cost\": 2019.35\n}",
+    "jsonV2Analyze": "{\n  \"query\": \"/* select#1 */ select `shop`.`customers`.`id` AS `id`,`shop`.`customers`.`email` AS `email`,`shop`.`customers`.`country` AS `country`,`shop`.`customers`.`created_at` AS `created_at` from `shop`.`customers` where (`shop`.`customers`.`email` like '%99@example.com')\",\n  \"inputs\": [\n    {\n      \"operation\": \"Table scan on customers\",\n      \"table_name\": \"customers\",\n      \"access_type\": \"table\",\n      \"actual_rows\": 20000.0,\n      \"schema_name\": \"shop\",\n      \"actual_loops\": 1,\n      \"used_columns\": [\n        \"id\",\n        \"email\",\n        \"country\",\n        \"created_at\"\n      ],\n      \"estimated_rows\": 19951.0,\n      \"actual_last_row_ms\": 3.3170919999999997,\n      \"actual_first_row_ms\": 0.041492999999999995,\n      \"estimated_total_cost\": 2019.35\n    }\n  ],\n  \"condition\": \"(customers.email like '%99@example.com')\",\n  \"operation\": \"Filter: (customers.email like '%99@example.com')\",\n  \"query_type\": \"select\",\n  \"access_type\": \"filter\",\n  \"actual_rows\": 200.0,\n  \"actual_loops\": 1,\n  \"estimated_rows\": 2216.556162312627,\n  \"actual_last_row_ms\": 6.50398,\n  \"actual_first_row_ms\": 0.087085,\n  \"estimated_total_cost\": 2019.35\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "SIMPLE",
+          "customers",
+          null,
+          "ALL",
+          null,
+          null,
+          null,
+          null,
+          19951,
+          11.11,
+          "Using where"
+        ]
+      ]
+    }
+  }
+}

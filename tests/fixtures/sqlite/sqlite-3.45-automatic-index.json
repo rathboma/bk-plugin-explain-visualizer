@@ -1,0 +1,38 @@
+{
+  "name": "sqlite-3.45-automatic-index",
+  "sqliteVersion": "3.45.1",
+  "modifies": false,
+  "query": "SELECT p.category, count(*) AS items\nFROM order_items oi\nJOIN products p ON p.price = oi.unit_price\nWHERE oi.order_id < 2000\nGROUP BY p.category",
+  "columns": [
+    "id",
+    "parent",
+    "notused",
+    "detail"
+  ],
+  "rows": [
+    [
+      8,
+      0,
+      0,
+      "SEARCH oi USING INDEX order_items_order_id_idx (order_id<?)"
+    ],
+    [
+      15,
+      0,
+      0,
+      "BLOOM FILTER ON p (price=?)"
+    ],
+    [
+      26,
+      0,
+      0,
+      "SEARCH p USING AUTOMATIC COVERING INDEX (price=?)"
+    ],
+    [
+      33,
+      0,
+      0,
+      "USE TEMP B-TREE FOR GROUP BY"
+    ]
+  ]
+}

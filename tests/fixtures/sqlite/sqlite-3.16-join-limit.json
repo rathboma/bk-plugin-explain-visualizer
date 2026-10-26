@@ -1,0 +1,32 @@
+{
+  "name": "sqlite-3.16-join-limit",
+  "sqliteVersion": "3.16.2",
+  "modifies": false,
+  "query": "SELECT o.id, o.total, c.email\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nORDER BY o.ordered_at DESC\nLIMIT 20",
+  "columns": [
+    "selectid",
+    "order",
+    "from",
+    "detail"
+  ],
+  "rows": [
+    [
+      0,
+      0,
+      1,
+      "SCAN TABLE customers AS c"
+    ],
+    [
+      0,
+      1,
+      0,
+      "SEARCH TABLE orders AS o USING INDEX orders_customer_id_idx (customer_id=?)"
+    ],
+    [
+      0,
+      0,
+      0,
+      "USE TEMP B-TREE FOR ORDER BY"
+    ]
+  ]
+}

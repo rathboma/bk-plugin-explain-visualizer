@@ -24,6 +24,16 @@ const MIN_FIT_ZOOM = 0.7;
 const PAD = 32;
 const clamp = (k: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, k));
 
+/** Explains what the diagram encodes, leaving out what the plan has no numbers for. */
+const legend = computed(() => {
+  const metrics = stats.value?.metrics;
+  const parts = ["Data flows upward."];
+  if (metrics?.estimatedRows || metrics?.actualRows) parts.push("Wider links carry more rows.");
+  const colored = ex.colorBy.value === "time" ? metrics?.time : metrics?.cost;
+  if (colored) parts.push(`Color shows each step's share of ${ex.colorBy.value === "time" ? "execution time" : "estimated cost"}.`);
+  return parts.join(" ");
+});
+
 /** Link thickness grows with the log of the rows flowing through it. */
 function linkWidth(childId: number): number {
   const rows = stats.value?.nodes.get(childId)?.outputRows ?? 0;
@@ -257,10 +267,7 @@ defineExpose({ fit });
         <Icon name="fit" />
       </button>
     </div>
-    <div class="legend hint">
-      Data flows upward. Wider links carry more rows. Color shows each step's share of
-      {{ ex.colorBy.value === "time" ? "execution time" : "estimated cost" }}.
-    </div>
+    <div class="legend hint">{{ legend }}</div>
   </div>
 </template>
 

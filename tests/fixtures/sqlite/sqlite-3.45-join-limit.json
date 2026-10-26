@@ -1,0 +1,26 @@
+{
+  "name": "sqlite-3.45-join-limit",
+  "sqliteVersion": "3.45.1",
+  "modifies": false,
+  "query": "SELECT o.id, o.total, c.email\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nORDER BY o.ordered_at DESC\nLIMIT 20",
+  "columns": [
+    "id",
+    "parent",
+    "notused",
+    "detail"
+  ],
+  "rows": [
+    [
+      6,
+      0,
+      0,
+      "SCAN o USING INDEX orders_ordered_at_idx"
+    ],
+    [
+      9,
+      0,
+      0,
+      "SEARCH c USING INTEGER PRIMARY KEY (rowid=?)"
+    ]
+  ]
+}

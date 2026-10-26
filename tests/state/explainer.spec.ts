@@ -3,11 +3,14 @@ import { describe, expect, it, vi } from "vitest";
 import { createExplainer, type SavedViewState } from "../../src/state/explainer";
 import { launchInput } from "../../src/host/launch";
 import type { Host } from "../../src/host/host";
-import { postgresFixture } from "../fixtures/load";
+import { mysqlFixture, postgresFixture, sqliteFixture, sqliteResult } from "../fixtures/load";
 
 const fixture = postgresFixture("hash-join-aggregate");
 
-function fakeHost(overrides: Partial<Host> = {}, options: { readOnly?: boolean; db?: string; saved?: unknown } = {}) {
+function fakeHost(
+  { runQuery: answer, ...overrides }: Partial<Host> = {},
+  options: { readOnly?: boolean; db?: string; saved?: unknown } = {}
+) {
   const queries: string[] = [];
   let saved: unknown = options.saved;
   const host = {
@@ -30,6 +33,7 @@ function fakeHost(overrides: Partial<Host> = {}, options: { readOnly?: boolean; 
     savePreference: async () => undefined,
     runQuery: async (sql: string) => {
       queries.push(sql);
+      if (answer) return answer(sql);
       if (sql.includes("current_setting")) {
         return [{ fields: [{ name: "version" }, { name: "scs" }], rows: [{ version: "170000", scs: "on" }] }];
       }
@@ -184,7 +188,7 @@ describe("explainer", () => {
   });
 
   it("visualizes a plan from a results cell, even on unsupported databases", async () => {
-    const { host, queries } = fakeHost({}, { db: "mysql" });
+    const { host, queries } = fakeHost({}, { db: "oracle" });
     const ex = createExplainer(host);
     await ex.init(async () =>
       launchInput({ command: "visualize-cell", params: { target: { type: "cell", value: fixture.json } } } as never)
@@ -225,6 +229,101 @@ describe("explainer", () => {
     ex.state.pasteText = "hello world";
     ex.visualize();
     expect(ex.state.error).toMatch(/doesn't look like a query plan/);
+  });
+});
+
+describe("explainer with MySQL, MariaDB and SQLite", () => {
+  const tree = mysqlFixture("mysql-8.4-join-aggregate").outputs;
+  /** A host for MySQL-family servers that answers EXPLAIN like the given server. */
+  function mysqlHost(version: string, options: { readOnly?: boolean; db?: string } = {}) {
+    return fakeHost(
+      {
+        runQuery: async (sql: string) => {
+          if (sql.startsWith("SELECT VERSION()")) {
+            return [{ fields: [{ name: "version" }, { name: "sql_mode" }], rows: [{ version, sql_mode: "" }] }];
+          }
+          const output = sql.startsWith("EXPLAIN ANALYZE") ? tree.treeAnalyze : tree.tree;
+          return [{ fields: [{ name: "EXPLAIN" }], rows: [{ EXPLAIN: output }] }];
+        },
+      },
+      { db: options.db ?? "mysql", readOnly: options.readOnly }
+    );
+  }
+  const sent = (queries: string[]) => queries.filter((q) => !q.startsWith("SELECT VERSION()"));
+
+  it("explains a MySQL query with the tree format and shows the server", async () => {
+    const { host, queries } = mysqlHost("8.4.2");
+    const ex = createExplainer(host);
+    await ex.init(editorLaunch("SELECT * FROM orders"));
+    expect(sent(queries)).toEqual(["EXPLAIN FORMAT=TREE SELECT * FROM orders"]);
+    expect(ex.state.server).toMatchObject({ productName: "MySQL", versionLabel: "8.4.2" });
+    expect(ex.plan.value?.engine).toBe("mysql");
+  });
+
+  it("runs an EXPLAIN ANALYZE the user wrote for a SELECT", async () => {
+    const { host, queries } = mysqlHost("8.4.2");
+    await createExplainer(host).init(editorLaunch("EXPLAIN ANALYZE SELECT * FROM orders"));
+    expect(sent(queries)).toEqual(["EXPLAIN ANALYZE SELECT * FROM orders"]);
+  });
+
+  it("explains, rather than analyzes, a write: MySQL would commit it", async () => {
+    const { host, queries } = mysqlHost("8.4.2");
+    const ex = createExplainer(host);
+    await ex.init(editorLaunch("EXPLAIN ANALYZE UPDATE orders SET total = 0"));
+    expect(sent(queries)).toEqual(["EXPLAIN FORMAT=TREE UPDATE orders SET total = 0"]);
+    expect(host.confirm).not.toHaveBeenCalled();
+    expect(ex.analyzePolicy.value.blocked).toMatch(/would commit/);
+
+    await ex.explain(true);
+    expect(ex.state.error).toMatch(/would commit/);
+    expect(sent(queries)).toHaveLength(1);
+  });
+
+  it("explains instead of analyzing on servers without EXPLAIN ANALYZE", async () => {
+    const { host, queries } = mysqlHost("5.7.44");
+    const ex = createExplainer(host);
+    await ex.init(editorLaunch("EXPLAIN ANALYZE SELECT 1"));
+    expect(sent(queries)).toEqual(["EXPLAIN FORMAT=JSON SELECT 1"]);
+    expect(ex.analyzePolicy.value.blocked).toMatch(/8\.0\.18/);
+  });
+
+  it("names MariaDB, even on a MySQL connection, and blocks its ANALYZE on read-only connections", async () => {
+    const { host } = mysqlHost("11.4.2-MariaDB", { readOnly: true });
+    const ex = createExplainer(host);
+    await ex.init(editorLaunch("SELECT 1"));
+    expect(ex.state.server?.productName).toBe("MariaDB");
+    expect(ex.analyzePolicy.value.blocked).toMatch(/read-only/i);
+  });
+
+  it("explains a SQLite query, and has no Explain Analyze", async () => {
+    const fixture = sqliteFixture("sqlite-3.45-join-aggregate");
+    const { host, queries } = fakeHost(
+      {
+        runQuery: async (sql: string) =>
+          sql.startsWith("SELECT sqlite_version()")
+            ? [{ fields: [{ name: "version" }], rows: [{ version: "3.45.1" }] }]
+            : [sqliteResult(fixture)],
+      },
+      { db: "sqlite" }
+    );
+    const ex = createExplainer(host);
+    await ex.init(editorLaunch("EXPLAIN QUERY PLAN SELECT 1"));
+    expect(queries.at(-1)).toBe("EXPLAIN QUERY PLAN SELECT 1");
+    expect(ex.plan.value?.root.operation).toBe("Query plan");
+    expect(ex.stats.value?.metrics).toEqual({ time: false, cost: false, estimatedRows: false, actualRows: false });
+
+    await ex.explain(true);
+    expect(ex.state.error).toMatch(/SQLite can't measure/);
+  });
+
+  it("visualizes another database's plan on any connection", async () => {
+    const { host } = fakeHost({}, { db: "sqlite" });
+    const ex = createExplainer(host);
+    await ex.init(async () => ({ kind: "empty" }));
+    ex.visualize(tree.treeAnalyze);
+    expect(ex.result.value?.engineId).toBe("mysql");
+    ex.visualize(fixture.text);
+    expect(ex.result.value?.engineId).toBe("postgresql");
   });
 });
 

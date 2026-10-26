@@ -77,16 +77,17 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
           <template v-if="ex.unsupportedDatabase.value">
             <h1>{{ databaseName(state.connection?.databaseType) }} is not supported yet</h1>
             <p>
-              Explain Visualizer currently supports {{ supportedDatabaseNames() }}. Support for MySQL, SQLite and SQL
-              Server is planned. A plan from a supported database can still be pasted above.
+              Explain Visualizer supports {{ supportedDatabaseNames() }}. A plan from a supported database can still be
+              pasted above.
             </p>
           </template>
           <template v-else>
             <h1>Visualize a query plan</h1>
-            <p>
+            <p v-if="ex.engine.value?.supportsAnalyze">
               Write a statement above and choose <strong>Explain</strong> to see how the database will run it, or
               <strong>Explain Analyze</strong> to run it and measure every step.
             </p>
+            <p v-else>Write a statement above and choose <strong>Explain</strong> to see how the database will run it.</p>
             <p class="hint">
               Right-click a query in the editor and choose <em>Visualize Explain Plan</em> to open it here. Existing
               EXPLAIN output can be visualized with <em>Paste Plan</em>.

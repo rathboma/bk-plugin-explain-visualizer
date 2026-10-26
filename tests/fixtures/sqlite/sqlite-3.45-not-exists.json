@@ -1,0 +1,32 @@
+{
+  "name": "sqlite-3.45-not-exists",
+  "sqliteVersion": "3.45.1",
+  "modifies": false,
+  "query": "SELECT c.id, c.email FROM customers c\nWHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id AND o.status = 'cancelled')\nLIMIT 50",
+  "columns": [
+    "id",
+    "parent",
+    "notused",
+    "detail"
+  ],
+  "rows": [
+    [
+      3,
+      0,
+      0,
+      "SCAN c"
+    ],
+    [
+      6,
+      0,
+      0,
+      "CORRELATED SCALAR SUBQUERY 1"
+    ],
+    [
+      11,
+      6,
+      0,
+      "SEARCH o USING INDEX orders_customer_id_idx (customer_id=?)"
+    ]
+  ]
+}

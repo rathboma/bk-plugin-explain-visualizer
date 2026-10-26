@@ -54,6 +54,10 @@ describe("tokenize / splitStatements", () => {
 });
 
 describe("inspectStatement", () => {
+  it("refuses a NUL character, which drivers and servers read differently", () => {
+    expect(inspectStatement("SELECT '\0'; DELETE FROM t").error).toMatch(/NUL/);
+  });
+
   it("accepts a single SELECT with a trailing semicolon", () => {
     const info = inspectStatement("  SELECT * FROM users;  ");
     expect(info.error).toBeUndefined();

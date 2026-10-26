@@ -1,0 +1,44 @@
+{
+  "name": "mysql-8.0-update",
+  "flavor": "mysql",
+  "serverVersion": "8.0.46",
+  "version": 80046,
+  "modifies": true,
+  "query": "UPDATE products SET price = price * 1.1 WHERE category = 'toys'",
+  "outputs": {
+    "tree": "<not executable by iterator executor>\n",
+    "json": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"table\": {\n      \"update\": true,\n      \"table_name\": \"products\",\n      \"access_type\": \"index\",\n      \"key\": \"PRIMARY\",\n      \"used_key_parts\": [\n        \"id\"\n      ],\n      \"key_length\": \"4\",\n      \"rows_examined_per_scan\": 2000,\n      \"filtered\": \"100.00\",\n      \"attached_condition\": \"(`shop`.`products`.`category` = 'toys')\"\n    }\n  }\n}",
+    "traditional": {
+      "columns": [
+        "id",
+        "select_type",
+        "table",
+        "partitions",
+        "type",
+        "possible_keys",
+        "key",
+        "key_len",
+        "ref",
+        "rows",
+        "filtered",
+        "Extra"
+      ],
+      "rows": [
+        [
+          1,
+          "UPDATE",
+          "products",
+          null,
+          "index",
+          null,
+          "PRIMARY",
+          "4",
+          null,
+          2000,
+          100,
+          "Using where"
+        ]
+      ]
+    }
+  }
+}

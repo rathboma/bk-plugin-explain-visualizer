@@ -1,0 +1,26 @@
+{
+  "name": "sqlite-3.16-multi-index-or",
+  "sqliteVersion": "3.16.2",
+  "modifies": false,
+  "query": "SELECT * FROM orders\nWHERE ordered_at BETWEEN '2022-01-01' AND '2022-01-15' OR customer_id < 50",
+  "columns": [
+    "selectid",
+    "order",
+    "from",
+    "detail"
+  ],
+  "rows": [
+    [
+      0,
+      0,
+      0,
+      "SEARCH TABLE orders USING INDEX orders_ordered_at_idx (ordered_at>? AND ordered_at<?)"
+    ],
+    [
+      0,
+      0,
+      0,
+      "SEARCH TABLE orders USING INDEX orders_customer_id_idx (customer_id<?)"
+    ]
+  ]
+}

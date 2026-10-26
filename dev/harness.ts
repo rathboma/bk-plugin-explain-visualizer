@@ -1,16 +1,19 @@
 /**
  * Stands in for Beekeeper Studio: loads the plugin in an iframe and answers
  * its requests using the same postMessage protocol as the app. Queries are
- * sent to a real PostgreSQL server by the dev server (see
- * vite.harness.config.ts), so the plugin can be developed and tested in a
- * plain browser.
+ * sent to a real database by the dev server (see vite.harness.config.ts), so
+ * the plugin can be developed and tested in a plain browser.
  *
- *   PG_URL=postgres://postgres:pw@localhost:5432/postgres yarn harness
+ *   PG_URL=postgres://postgres:pw@localhost:5432/postgres \
+ *   MYSQL_URL=mysql://root:pw@127.0.0.1:3306/shop yarn harness
  *
+ * SQLite needs nothing: a temporary database is seeded on first use.
  * The page reads ?scenario=&db=&theme=&readonly= so tests can drive it.
  */
 import cteSubplans from "../tests/fixtures/postgres/cte-subplans.json";
 import diskSort from "../tests/fixtures/postgres/disk-sort.json";
+import mysqlSubqueries from "../tests/fixtures/mysql/mysql-8.4-subqueries.json";
+import sqliteSubqueries from "../tests/fixtures/sqlite/sqlite-3.45-subqueries.json";
 
 const SAMPLE_QUERY = `SELECT c.country, count(*) AS orders, sum(o.total) AS revenue
 FROM customers c
@@ -19,49 +22,75 @@ WHERE o.status = 'pending'
 GROUP BY c.country
 ORDER BY revenue DESC;`;
 
-const SCENARIOS: Record<string, { label: string; command: string; params?: unknown }> = {
+/** A statement the user wrote EXPLAIN ANALYZE (or its equivalent) in front of. */
+const ANALYZE_QUERY: Record<string, string> = {
+  postgresql: `EXPLAIN ANALYZE ${cteSubplans.query}`,
+  mysql: `EXPLAIN ANALYZE ${mysqlSubqueries.query}`,
+  mariadb: `ANALYZE ${mysqlSubqueries.query}`,
+  sqlite: `EXPLAIN QUERY PLAN ${sqliteSubqueries.query}`,
+};
+
+/** A plan in a results cell, and a plan spread over a results column, per database. */
+function resultsPlans(db: string): { cell: unknown; range?: unknown[][]; column: unknown[][] } {
+  if (db === "mysql" || db === "mariadb") {
+    const tree = mysqlSubqueries.outputs.treeAnalyze;
+    return { cell: tree, column: [[tree]] };
+  }
+  if (db === "sqlite") {
+    const rows = sqliteSubqueries.rows;
+    return { cell: rows[0][3], range: rows, column: rows.map((r) => [r[3]]) };
+  }
+  return { cell: cteSubplans.json, column: diskSort.text.split("\n").map((line) => [line]) };
+}
+
+interface Scenario {
+  label: string;
+  command: string;
+  params?: (db: string) => unknown;
+}
+
+const SCENARIOS: Record<string, Scenario> = {
   editor: {
     label: "Query editor menu",
     command: "explain-query",
-    params: { text: `SELECT 1;\n\n${SAMPLE_QUERY}`, selectedText: "", selectedQuery: SAMPLE_QUERY },
+    params: () => ({ text: `SELECT 1;\n\n${SAMPLE_QUERY}`, selectedText: "", selectedQuery: SAMPLE_QUERY }),
   },
   "editor-analyze": {
     label: "Editor: EXPLAIN ANALYZE …",
     command: "explain-query",
-    params: { text: `EXPLAIN ANALYZE ${cteSubplans.query}`, selectedText: "", selectedQuery: "" },
+    params: (db) => ({ text: ANALYZE_QUERY[db] ?? ANALYZE_QUERY.postgresql, selectedText: "", selectedQuery: "" }),
   },
   "editor-write": {
     label: "Editor: UPDATE statement",
     command: "explain-query",
-    params: {
-      text: "UPDATE products SET price = price * 1.1 WHERE category = 'toys'",
-      selectedText: "",
-      selectedQuery: "",
-    },
+    params: () => ({ text: "UPDATE products SET price = price * 1.1 WHERE category = 'toys'", selectedText: "", selectedQuery: "" }),
   },
   "new-tab": { label: "New tab menu", command: "new-explain" },
   "cell-json": {
-    label: "Results cell (JSON plan)",
+    label: "Results cell (a plan)",
     command: "visualize-cell",
-    params: { target: { type: "cell", row: 1, column: "QUERY PLAN", value: cteSubplans.json } },
+    params: (db) => {
+      const { cell, range } = resultsPlans(db);
+      return { target: { type: "cell", row: 1, column: "QUERY PLAN", value: cell }, activeRange: range ? { value: range } : undefined };
+    },
   },
   "column-text": {
     label: "Results column (text plan)",
     command: "visualize-column",
-    params: {
-      target: { type: "column", column: "QUERY PLAN", value: diskSort.text.split("\n").map((line) => [line]) },
-    },
+    params: (db) => ({ target: { type: "column", column: "QUERY PLAN", value: resultsPlans(db).column } }),
   },
   "visualize-result": {
-    label: "Visualize menu (text plan)",
+    label: "Visualize menu (whole result)",
     command: "visualize-result",
-    params: {
-      source: "result",
-      activeRange: {
-        rows: diskSort.text.split("\n").map((_line, i) => i + 1),
-        columns: ["QUERY PLAN"],
-        value: diskSort.text.split("\n").map((line) => [line]),
-      },
+    params: (db) => {
+      const { range, column } = resultsPlans(db);
+      const value = range ?? column;
+      const columns =
+        db === "sqlite" ? ["id", "parent", "notused", "detail"] : db === "postgresql" ? ["QUERY PLAN"] : ["EXPLAIN"];
+      return {
+        source: "result",
+        target: { type: "corner", rows: value.map((_row, i) => i + 1), columns, value },
+      };
     },
   },
 };
@@ -150,7 +179,7 @@ async function runQuery(sql: string) {
   const response = await fetch("/__harness/query", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sql }),
+    body: JSON.stringify({ sql, db: databaseSelect.value }),
   });
   const body = await response.json();
   if (body.error) throw new Error(body.error.message);
@@ -167,12 +196,12 @@ async function handle(name: string, args: Record<string, unknown>): Promise<unkn
         id: 1,
         workspaceId: -1,
         connectionName: "Harness",
-        databaseName: "postgres",
+        databaseName: databaseSelect.value === "postgresql" ? "postgres" : "shop",
         defaultSchema: "public",
         readOnlyMode: readOnlyBox.checked,
       };
     case "getViewContext":
-      return { command: scenario.command, params: scenario.params };
+      return { command: scenario.command, params: scenario.params?.(databaseSelect.value) };
     case "getAppInfo":
       return { version: "5.5.0", theme: theme() };
     case "getViewState":

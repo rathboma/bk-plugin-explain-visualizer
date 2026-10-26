@@ -1,0 +1,20 @@
+{
+  "name": "sqlite-3.45-full-scan",
+  "sqliteVersion": "3.45.1",
+  "modifies": false,
+  "query": "SELECT * FROM customers WHERE email LIKE '%99@example.com'",
+  "columns": [
+    "id",
+    "parent",
+    "notused",
+    "detail"
+  ],
+  "rows": [
+    [
+      2,
+      0,
+      0,
+      "SCAN customers"
+    ]
+  ]
+}
