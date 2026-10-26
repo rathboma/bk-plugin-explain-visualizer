@@ -201,7 +201,7 @@ describe("explainer", () => {
     const ex = createExplainer(host);
     const rows = fixture.text.split("\n").map((line) => [line]);
     await ex.init(async () =>
-      launchInput({ command: "visualize-result", params: { source: "result", activeRange: { value: rows } } } as never)
+      launchInput({ command: "visualize-result", params: { source: "result", target: { value: rows } } } as never)
     );
     expect(ex.result.value?.rawFormat).toBe("text");
     expect(ex.state.pasteText).toBe(fixture.text);
@@ -247,7 +247,7 @@ describe("launchInput", () => {
 
   it("takes the whole result from the Visualize menu", () => {
     const ctx = (value: unknown[][]) =>
-      ({ command: "visualize-result", params: { source: "result", activeRange: { value } } }) as never;
+      ({ command: "visualize-result", params: { source: "result", target: { value } } }) as never;
     // A JSON plan is a single cell
     expect(launchInput(ctx([['[{"Plan": {}}]']]))).toEqual({ kind: "plan", value: '[{"Plan": {}}]' });
     // A text plan is one row per line
