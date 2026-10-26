@@ -15,7 +15,7 @@
     "package": "node scripts/package.mjs"
   },
   "dependencies": {
-    "@beekeeperstudio/plugin": "^1.7.2",
+    "@beekeeperstudio/plugin": "^1.8.0",
     "d3-hierarchy": "^3.1.2",
     "vue": "^3.5"
   },

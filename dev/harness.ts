@@ -79,6 +79,20 @@ const SCENARIOS: Record<string, Scenario> = {
     command: "visualize-column",
     params: (db) => ({ target: { type: "column", column: "QUERY PLAN", value: resultsPlans(db).column } }),
   },
+  "visualize-result": {
+    label: "Visualize menu (whole result)",
+    command: "visualize-result",
+    params: (db) => {
+      const { range, column } = resultsPlans(db);
+      const value = range ?? column;
+      const columns =
+        db === "sqlite" ? ["id", "parent", "notused", "detail"] : db === "postgresql" ? ["QUERY PLAN"] : ["EXPLAIN"];
+      return {
+        source: "result",
+        target: { type: "corner", rows: value.map((_row, i) => i + 1), columns, value },
+      };
+    },
+  },
 };
 
 const THEMES = {

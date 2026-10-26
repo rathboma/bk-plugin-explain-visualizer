@@ -38,10 +38,14 @@ adapter (see [Adding a database](#adding-a-database)).
 
 There are several ways in:
 
-- **Query editor:** right-click a query and choose **Visualize Explain Plan**.
-  The selected text is used, or the statement under the cursor.
+- **Query editor:** click **Explain** in the editor toolbar, or right-click a
+  query and choose **Visualize Explain Plan**. The selected text is used, or
+  the statement under the cursor.
 - **New tab menu:** open **Explain Visualizer**, write a statement and choose
   **Explain** or **Explain Analyze**.
+- **Visualize menu:** after running `EXPLAIN ...` yourself, choose
+  **Visualize › Explain Visualizer** in the results status bar. The item is
+  disabled until the result is a query plan.
 - **Results grid:** after running EXPLAIN yourself, right-click the plan and
   choose **Visualize Explain Plan**:
   - a plan in one cell (PostgreSQL's `FORMAT JSON`, MySQL's tree or JSON):
@@ -181,8 +185,9 @@ and restart the app:
 disabled = false
 ```
 
-Then connect to a database: **Visualize Explain Plan** appears in the query
-editor's context menu and **Explain Visualizer** in the new tab menu.
+Then connect to a database: **Explain** appears in the query editor toolbar,
+**Visualize Explain Plan** in the query editor's context menu and **Explain
+Visualizer** in the new tab menu and the results **Visualize** menu.
 
 ### Harness
 
