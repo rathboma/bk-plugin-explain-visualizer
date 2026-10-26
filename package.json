@@ -1,6 +1,6 @@
 {
   "name": "bk-plugin-explain-visualizer",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Beekeeper Studio plugin that visualizes query execution plans",
   "license": "GPL-3.0-only",
