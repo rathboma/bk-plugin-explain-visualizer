@@ -25,6 +25,12 @@ const text = computed({
 // Leave room for the plan once there is one; the box can still be resized.
 const rows = computed(() => Math.min(ex.plan.value ? 4 : 10, Math.max(3, text.value.split("\n").length)));
 const policy = ex.analyzePolicy;
+/** The Explain Analyze button's tooltip: why it is disabled, or that it runs the statement. */
+const analyzeTitle = computed(() => {
+  if (policy.value.blocked) return policy.value.blocked;
+  if (policy.value.confirm) return "Runs the statement to measure every step, then rolls its changes back. Asks first.";
+  return "Runs the statement to measure the time and rows of every step, so it takes as long as the query does.";
+});
 
 const dbLabel = computed(() => {
   const name = state.server?.productName ?? databaseName(state.connection?.databaseType ?? state.connection?.connectionType);
@@ -136,7 +142,7 @@ onBeforeUnmount(() => document.removeEventListener("mousedown", onDocumentClick)
           v-if="engine?.supportsAnalyze"
           class="btn"
           :disabled="running || !!policy.blocked"
-          :title="policy.blocked ?? 'Run the statement and measure the time and rows of every step'"
+          :title="analyzeTitle"
           @click="submit(true)"
         >
           <Icon name="timer" :size="14" /> Explain Analyze <span class="kbd">{{ mod }}+Shift+Enter</span>

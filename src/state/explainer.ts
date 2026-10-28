@@ -35,6 +35,18 @@ export interface SavedViewState {
 }
 
 const OPTIONS_PREFERENCE = "explainOptions";
+/** Set once the user has accepted the notice that Explain Analyze runs the statement. */
+const ANALYZE_NOTICE_PREFERENCE = "analyzeNoticeAccepted";
+/**
+ * Asked before the first Explain Analyze, then remembered. Statements that
+ * change data ask every time instead, through the engine's policy.
+ */
+export const ANALYZE_NOTICE = {
+  title: "Run the statement?",
+  message:
+    "Explain Analyze runs the statement to measure every step, so it takes as long as the query does and does the same work on the database. This is asked once; statements that change data are never run without asking.",
+  confirmLabel: "Run",
+};
 /** Plans larger than this are not saved with the tab, to keep the app's storage small. */
 const MAX_SAVED_PLAN_BYTES = 1_000_000;
 
@@ -73,6 +85,7 @@ export function createExplainer(host: Host) {
     connection: undefined as ConnectionInfo | undefined,
     server: undefined as ServerInfo | undefined,
     lastAnalyze: false,
+    analyzeNoticeAccepted: false,
   });
 
   const result = shallowRef<PlanResult>();
@@ -141,8 +154,20 @@ export function createExplainer(host: Host) {
     return state.server;
   }
 
-  /** Runs EXPLAIN for the query box. `analyze` executes the statement. */
-  async function explain(analyze: boolean) {
+  /** Either dialog has told the user that Explain Analyze runs the statement. */
+  function acceptAnalyzeNotice() {
+    if (state.analyzeNoticeAccepted) return;
+    state.analyzeNoticeAccepted = true;
+    void host.savePreference(ANALYZE_NOTICE_PREFERENCE, true);
+  }
+
+  /**
+   * Runs EXPLAIN for the query box. `analyze` executes the statement, which
+   * the first Explain Analyze says and asks about, unless the user wrote
+   * EXPLAIN ANALYZE themselves (`typedAnalyze`). Statements that change data
+   * ask every time (the engine's policy), notice or not.
+   */
+  async function explain(analyze: boolean, typedAnalyze = false) {
     const current = engine.value;
     if (!current) {
       fail("This database is not supported yet.");
@@ -161,13 +186,20 @@ export function createExplainer(host: Host) {
       }
       const policy = current.analyzePolicy(statement, { server, readOnlyConnection: readOnly.value });
       if (policy.blocked) return fail(policy.blocked);
-      if (policy.confirm) {
-        const { title, message, confirmLabel } = policy.confirm;
-        const proceed = await host.confirm(title, message, confirmLabel);
+      const ask = policy.confirm ?? (state.analyzeNoticeAccepted || typedAnalyze ? undefined : ANALYZE_NOTICE);
+      if (ask) {
+        const proceed = await host.confirm(ask.title, ask.message, ask.confirmLabel);
         if (proceed === undefined) {
-          return fail("This version of Beekeeper Studio can't ask for confirmation, so this statement can't be analyzed. Explain (without Analyze) still works.");
+          // Only the engine's confirmation is a safety gate; without a dialog
+          // the notice is skipped and a statement that only reads still runs.
+          if (policy.confirm) {
+            return fail("This version of Beekeeper Studio can't ask for confirmation, so this statement can't be analyzed. Explain (without Analyze) still works.");
+          }
+        } else if (!proceed) {
+          return;
+        } else {
+          acceptAnalyzeNotice();
         }
-        if (!proceed) return;
       }
     }
 
@@ -232,12 +264,14 @@ export function createExplainer(host: Host) {
   }
 
   async function init(launch: () => Promise<LaunchInput>) {
-    const [connection, saved, savedOptions] = await Promise.all([
+    const [connection, saved, savedOptions, noticeAccepted] = await Promise.all([
       host.connectionInfo(),
       host.viewState<SavedViewState>(),
       host.preference<ExplainOptionValues>(OPTIONS_PREFERENCE),
+      host.preference<boolean>(ANALYZE_NOTICE_PREFERENCE),
     ]);
     state.connection = connection;
+    state.analyzeNoticeAccepted = noticeAccepted === true;
     engine.value = engineForConnection(connection?.databaseType ?? connection?.connectionType);
     state.options = { ...defaultOptions(engine.value), ...(savedOptions ?? {}) };
     if (!engine.value) state.mode = "paste";
@@ -260,10 +294,10 @@ export function createExplainer(host: Host) {
       // Saved first, so reopening the tab restores it rather than running it again.
       persist();
       // Explaining is safe: the statement is planned, not run. ANALYZE only
-      // runs automatically when the user wrote EXPLAIN ANALYZE themselves,
-      // and never on read-only connections, where it can't be rolled back.
-      // A statement the engine won't analyze is explained instead; the query
-      // panel says why.
+      // runs automatically when the user wrote EXPLAIN ANALYZE themselves
+      // (so without the first-run notice), and never on read-only
+      // connections, where it can't be rolled back. A statement the engine
+      // won't analyze is explained instead; the query panel says why.
       const current = engine.value;
       if (current) {
         let auto = Boolean(analyze) && current.supportsAnalyze && !readOnly.value;
@@ -272,7 +306,7 @@ export function createExplainer(host: Host) {
           const info = current.inspect(state.query, server);
           auto = !info.error && !current.analyzePolicy(info, { server, readOnlyConnection: false }).blocked;
         }
-        await explain(auto);
+        await explain(auto, auto);
       }
     } else {
       persist();

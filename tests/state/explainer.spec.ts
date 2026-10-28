@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it, vi } from "vitest";
-import { createExplainer, type SavedViewState } from "../../src/state/explainer";
+import { ANALYZE_NOTICE, createExplainer, type SavedViewState } from "../../src/state/explainer";
 import { launchInput } from "../../src/host/launch";
 import type { Host } from "../../src/host/host";
 import { mysqlFixture, postgresFixture, sqliteFixture, sqliteResult } from "../fixtures/load";
@@ -75,6 +75,65 @@ describe("explainer", () => {
     const ex = createExplainer(host);
     await ex.init(editorLaunch("explain (analyze, verbose) SELECT 1"));
     expect(queries[1]).toBe("EXPLAIN (ANALYZE, VERBOSE, BUFFERS, FORMAT JSON) SELECT 1;\nROLLBACK;");
+    // The user wrote EXPLAIN ANALYZE, so there is no notice that it runs the statement.
+    expect(host.confirm).not.toHaveBeenCalled();
+  });
+
+  it("says that Explain Analyze runs the statement, once", async () => {
+    const savePreference = vi.fn(async () => undefined);
+    const { host, queries } = fakeHost({ savePreference });
+    const ex = createExplainer(host);
+    await ex.init(async () => ({ kind: "empty" }));
+    ex.state.query = "SELECT * FROM orders";
+    await ex.explain(true);
+    expect(host.confirm).toHaveBeenCalledOnce();
+    expect(host.confirm).toHaveBeenCalledWith(ANALYZE_NOTICE.title, ANALYZE_NOTICE.message, "Run");
+    expect(queries.at(-1)).toBe("EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT * FROM orders;\nROLLBACK;");
+    expect(savePreference).toHaveBeenCalledWith("analyzeNoticeAccepted", true);
+
+    await ex.explain(true);
+    expect(host.confirm).toHaveBeenCalledOnce();
+    expect(queries.filter((q) => q.startsWith("EXPLAIN"))).toHaveLength(2);
+  });
+
+  it("does not repeat the notice once it was accepted", async () => {
+    const { host, queries } = fakeHost({
+      preference: (async (key: string) => (key === "analyzeNoticeAccepted" ? true : undefined)) as Host["preference"],
+    });
+    const ex = createExplainer(host);
+    await ex.init(async () => ({ kind: "empty" }));
+    ex.state.query = "SELECT 1";
+    await ex.explain(true);
+    expect(host.confirm).not.toHaveBeenCalled();
+    expect(queries.at(-1)).toMatch(/^EXPLAIN \(ANALYZE/);
+  });
+
+  it("runs nothing when the notice is declined, and asks again next time", async () => {
+    const confirm = vi.fn(async () => false);
+    const savePreference = vi.fn(async () => undefined);
+    const { host, queries } = fakeHost({ confirm, savePreference });
+    const ex = createExplainer(host);
+    await ex.init(async () => ({ kind: "empty" }));
+    ex.state.query = "SELECT 1";
+    await ex.explain(true);
+    expect(queries.filter((q) => q.startsWith("EXPLAIN"))).toEqual([]);
+    expect(ex.state.status).toBe("idle");
+    expect(savePreference).not.toHaveBeenCalledWith("analyzeNoticeAccepted", true);
+
+    await ex.explain(true);
+    expect(confirm).toHaveBeenCalledTimes(2);
+  });
+
+  it("still analyzes a statement that only reads when the app can't show the notice", async () => {
+    const savePreference = vi.fn(async () => undefined);
+    const { host, queries } = fakeHost({ confirm: vi.fn(async () => undefined), savePreference });
+    const ex = createExplainer(host);
+    await ex.init(async () => ({ kind: "empty" }));
+    ex.state.query = "SELECT 1";
+    await ex.explain(true);
+    expect(queries.at(-1)).toMatch(/^EXPLAIN \(ANALYZE/);
+    expect(ex.state.status).toBe("done");
+    expect(savePreference).not.toHaveBeenCalledWith("analyzeNoticeAccepted", true);
   });
 
   it("asks before analyzing a statement that changes data, and stops if declined", async () => {
@@ -91,6 +150,12 @@ describe("explainer", () => {
     confirm.mockResolvedValueOnce(true);
     await ex.explain(true);
     expect(queries.at(-1)).toMatch(/^EXPLAIN \(ANALYZE.*\) DELETE FROM orders;\nROLLBACK;$/);
+
+    // That dialog said Explain Analyze runs the statement, so reads don't get the notice.
+    ex.state.query = "SELECT 1";
+    await ex.explain(true);
+    expect(confirm).toHaveBeenCalledTimes(2);
+    expect(queries.at(-1)).toMatch(/^EXPLAIN \(ANALYZE.*\) SELECT 1;\nROLLBACK;$/);
   });
 
   it("refuses to analyze writes on a read-only connection", async () => {

@@ -65,11 +65,14 @@ There are several ways in:
 **Explain** asks the database for its plan without running the statement. It is
 always safe, so it runs automatically when the tab opens from the editor.
 
-**Explain Analyze** runs the statement and measures every step. How it keeps
-that safe depends on the database, below. If the editor text already starts with
-`EXPLAIN ANALYZE` (or the database's equivalent), the plugin uses it; when the
-statement can't be analyzed it is explained instead, and the reason is shown
-under the editor.
+**Explain Analyze** runs the statement and measures every step, so it takes as
+long as the query does. The button's tooltip says so, and the first time you
+choose it the plugin asks before going on; once accepted, statements that only
+read run without asking again. Statements that change data ask every time, or
+can't be analyzed, depending on the database, below. If the editor text already
+starts with `EXPLAIN ANALYZE` (or the database's equivalent), the plugin uses
+it, without the first-run notice; when the statement can't be analyzed it is
+explained instead, and the reason is shown under the editor.
 
 #### PostgreSQL
 
